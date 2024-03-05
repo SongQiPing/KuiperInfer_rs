@@ -120,6 +120,16 @@ mod test_tensor {
         f1.set_data(data);
 
     }
+    #[test]
+    fn test_slice(){
+        use ndarray::prelude::*;
+        use ndarray::Array;
+
+        let mut f1 = kuiper_infer::Tensor::<f32, _>::new([3, 224, 224].f());
+
+        println!("Data in the first channel: {:?}", f1.slice(s![0, .., ..])); 
+        println!("Data in the (1,1,1): {}", f1.data()[[1, 1, 1]]);
+    }
 
     // #[test]
     // fn test_ndarry(){

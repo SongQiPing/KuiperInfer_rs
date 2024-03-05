@@ -12,7 +12,6 @@ pub struct Tensor<A, D: Dimension> {
 impl<A, D> Tensor<A, D>
 where
     A: Clone + Zero,
-    // S: RawData<Elem = A>,
     D: Dimension,
 {
     pub fn new(shape: Shape<D>) -> Tensor<A, D> {
@@ -94,12 +93,12 @@ where
     // }
 
 
-    // pub fn slice<I>(&self, info: I) -> ArrayView<'_, A, I::OutDim>
-    // where
-    //     I: ndarray::SliceArg<D>,
-    //     S: ndarray:: Data,
-    // {
-    //     self.data.view().slice_move(info)
-    // }
-    // More methods can be translated similarly...
+    pub fn slice<I>(&self, info:I) -> ArrayView<'_, A, I::OutDim>
+    where
+        I: ndarray::SliceArg<D>
+    {
+        self.data.view().slice_move(info)
+    }
+    
 }
+
