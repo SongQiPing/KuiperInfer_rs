@@ -1,37 +1,26 @@
 use ndarray::prelude::*;
 use ndarray::Array;
-use std::cmp::Ordering;
-use std::vec::Vec;
-
-use ndarray::IxDynImpl;
-
+use ndarray::Shape;
+use ndarray::RawData;
 use num_traits::Zero;
 
-pub struct Tensor<T>
-where
-    T: Clone + Zero,
-{
-    raw_shapes: Vec<usize>,
-    data: Array<T, Dim<IxDynImpl>>,
+pub struct Tensor<A, D: Dimension> {
+    raw_shapes: D,
+    data: Array<A, D>,
 }
 
-impl<T> Tensor<T>
+impl<A, D> Tensor<A, D>
 where
-    T: Clone + Zero,
+    A: Clone + Zero,
+    // S: RawData<Elem = A>,
+    D: Dimension,
 {
-    pub fn new(raw_shapes: &[usize]) -> Self {
-        let raw_shapes = raw_shapes.to_vec();
-
-        let data = Array::<T, _>::zeros(raw_shapes.clone());
+    pub fn new(shape: Shape<D>) -> Tensor<A, D> {
+        let raw_shapes = shape.raw_dim().clone();
+        let data: ArrayBase<ndarray::OwnedRepr<A>, D> = Array::<A, D>::zeros(shape);
 
         Tensor { raw_shapes, data }
     }
-
-    // pub fn new(size: u32) -> Tensor<T> {
-    //     Tensor {
-    //         raw_shapes: Vec::new(),
-    //         data: Vec::new(),
-    //     }
     // }
     // pub fn new_with_dimensions(dimensions: Vec<u32>) -> Tensor {
     //     let size: usize = dimensions.iter().map(|&x| x as usize).product();
@@ -41,40 +30,44 @@ where
     //     }
     // }
     pub fn ndim(&self) -> usize {
-        self.raw_shapes.len()
+        self.raw_shapes.ndim()
     }
 
     pub fn rows(&self) -> usize {
-        let mut n = self.ndim();
-        if n == 0 {
-            n += 2;
+        let ndim = self.ndim();
+        if ndim > 1 {
+            self.raw_shapes[ndim - 2]
+        } else if ndim == 1 {
+            1
+        } else {
+            // Handle the case when n is 0 or negative
+            panic!("Invalid state: ndim() returned 0, which is not allowed.");
         }
-        else if n == 1 {
-            n += 1;
-            
-        }
-        self.raw_shapes.get(n - 2).copied().unwrap()
     }
 
     pub fn cols(&self) -> usize {
-        let mut n = self.ndim();
-        if n == 0 {
-            n += 2;
+        let ndim = self.ndim();
+        if ndim == 0 {
+            // Handle the case when n is 0
+            panic!("Invalid state: ndim() returned 0, which is not allowed for cols().");
         }
-        self.raw_shapes.get(n - 1).copied().unwrap()
+        else {
+            self.raw_shapes[ndim - 1]
+        }
+        
     }
 
-    pub fn channels(&self) -> &Vec<usize> {
+    pub fn channels(&self) -> &D {
         &self.raw_shapes
     }
 
     pub fn size(&self) -> usize {
-        self.raw_shapes.iter().product()
+        self.raw_shapes.size()
     }
 
-    // pub fn set_data(&mut self, new_data: Vec<f32>) {
-    //     self.data = new_data;
-    // }
+    pub fn set_data(&mut self, new_data: Array<A, D>) {
+        self.data = new_data;
+    }
 
     // pub fn empty(&self) -> bool {
     //     self.data.is_empty()
@@ -88,22 +81,25 @@ where
     //     self.data.get_mut(offset).unwrap_or(&mut 0.0)
     // }
 
-    pub fn raw_shapes(&self) -> &Vec<usize> {
-        &self.raw_shapes
-    }
-
-    // pub fn data(&self) -> &[f32] {
-    //     &self.data
+    // pub fn raw_shapes(&self) -> &Vec<usize> {
+    //     &self.raw_shapes
     // }
+
+    pub fn data(&self) -> &Array<A, D> {
+        &self.data
+    }
 
     // pub fn data_mut(&mut self) -> &mut [f32] {
     //     &mut self.data
     // }
 
-    // pub fn slice(&self, channel: usize) -> &[f32] {
-    //     let start = channel * self.rows() as usize * self.cols() as usize;
-    //     &self.data[start..(start + self.rows() as usize * self.cols() as usize)]
-    // }
 
+    // pub fn slice<I>(&self, info: I) -> ArrayView<'_, A, I::OutDim>
+    // where
+    //     I: ndarray::SliceArg<D>,
+    //     S: ndarray:: Data,
+    // {
+    //     self.data.view().slice_move(info)
+    // }
     // More methods can be translated similarly...
 }
