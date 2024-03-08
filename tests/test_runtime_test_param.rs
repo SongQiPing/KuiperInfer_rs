@@ -33,7 +33,7 @@ mod test_operator {
     #[test]
     fn test_new_operator() {
         use kuiper_infer::pnnx::Operator;
-        let operator = Operator::new("pnnx.Input".to_string(), "pnnx_input_0".to_string());
+        let _operator = Operator::new("pnnx.Input".to_string(), "pnnx_input_0".to_string());
     }
 }
 #[cfg(test)]
@@ -42,7 +42,7 @@ mod test_operand {
     #[test]
     fn test_new_operand() {
         use kuiper_infer::pnnx::Operand;
-        let operand = Operand::new("operand_name".to_string());
+        let _operand = Operand::new("operand_name".to_string());
     }
 }
 
@@ -205,14 +205,11 @@ mod test_parameter {
 
 #[cfg(test)]
 mod test_graph {
-    use std::borrow::Borrow;
     use std::cell::RefCell;
-    use std::fmt::Pointer;
     use std::fs::File;
     use std::io::{self, Read};
     use std::rc::Rc;
 
-    use kuiper_infer::pnnx::Operand;
     pub fn read_file(file_path: &str) -> io::Result<String> {
         // 打开文件
         let mut file = File::open(file_path)?;
@@ -230,14 +227,14 @@ mod test_graph {
         use kuiper_infer::pnnx::Graph;
         let param_path = "model_file/test_linear.pnnx.param";
         let bin_path = "model_file/test_linear.pnnx.bin";
-        let graph = Graph::from_pnnx(param_path, bin_path);
+        let _graph = Graph::from_pnnx(param_path, bin_path);
     }
     #[test]
     fn test_graph_load_pnnx_yolo() {
         use kuiper_infer::pnnx::Graph;
         let param_path = "model_file/yolov5s_batch8.pnnx.param";
         let bin_path = "model_file/yolov5s_batch8.pnnx.bin";
-        let graph = Graph::from_pnnx(param_path, bin_path);
+        let _graph = Graph::from_pnnx(param_path, bin_path);
     }
     #[test]
     fn test_new_operand() {
@@ -247,19 +244,18 @@ mod test_graph {
     }
     #[test]
     fn test_refcell_borrowed() {
-        use std::borrow::Cow::Borrowed;
         use std::cell::RefCell;
         use std::rc::Rc;
 
         struct MyStruct {
-            pub data: String,
+            pub _data: String,
         }
         let shared_data = Rc::new(RefCell::new(MyStruct {
-            data: String::from("Hello, Rust!"),
+            _data: String::from("Hello, Rust!"),
         }));
 
         // let reference1 = &shared_data.as_ref().borrow().data;
-        let reference1 = shared_data.as_ref().borrow();
+        let _reference1 = shared_data.as_ref().borrow();
         // let reference2 = shared_data.borrow();
     }
     #[test]
@@ -269,7 +265,7 @@ mod test_graph {
 
         let mut graph = Graph::new();
         let operand1 = graph.new_operand("0".to_string());
-        let operand2 = graph.get_operand("0".to_string()).unwrap();
+        let _operand2 = graph.get_operand("0".to_string()).unwrap();
         // println!("{:?}", operand.borrow());
         // operand2.borrow().set_producer();
         let cloned_operand_rc = operand1.clone();
@@ -281,11 +277,11 @@ mod test_graph {
     #[test]
     fn test_load_shape() {
         use kuiper_infer::pnnx::Graph;
-        use kuiper_infer::pnnx::Operand;
+
 
         let mut graph = Graph::new();
 
-        let mut operand1 = graph.new_operand("0".to_string());
+        let operand1 = graph.new_operand("0".to_string());
 
         let operatoer = graph.new_operator("pnnx.Input".to_string(), " pnnx_input_0 ".to_string());
         operatoer
@@ -304,7 +300,7 @@ mod test_graph {
 
         let mut graph = Graph::new();
 
-        let mut operand1: Rc<RefCell<Operand>> = graph.new_operand("1".to_string());
+        let operand1: Rc<RefCell<Operand>> = graph.new_operand("1".to_string());
 
         let operatoer = graph.new_operator("pnnx.Input".to_string(), " pnnx_input_0 ".to_string());
         operatoer
@@ -313,7 +309,6 @@ mod test_graph {
             .add_input_operand(operand1.clone());
 
         graph.load_input_key(&operatoer, "input".to_string(), "1".to_string());
-        let vec: Vec<i32> = vec![1, 32];
 
         let input_name = &operatoer.as_ref().borrow().input_names[0];
 

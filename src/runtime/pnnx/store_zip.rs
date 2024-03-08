@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{self, Read, Seek, SeekFrom};
-use std::path::Path;
+use std::io::{self, Read};
 const LOCAL_FILE_HEADER_MAGIC: u32 = 0x04034b50;
 
 #[repr(packed)]
@@ -73,7 +72,7 @@ impl StoreZipReader {
             let signature = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
             println!("Read 32-bit value: {}, {}", signature, 0x04034b50);
             match signature {
-                0x04034b50 => {}
+                LOCAL_FILE_HEADER_MAGIC => {}
 
                 _ => {}
             }

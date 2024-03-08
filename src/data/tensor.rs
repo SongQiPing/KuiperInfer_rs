@@ -1,7 +1,6 @@
 use ndarray::prelude::*;
 use ndarray::Array;
 use ndarray::Shape;
-use ndarray::RawData;
 use num_traits::Zero;
 
 pub struct Tensor<A, D: Dimension> {

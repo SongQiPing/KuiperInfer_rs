@@ -1,5 +1,4 @@
 use regex::Regex;
-use std::collections::btree_map::Values;
 use std::collections::HashMap;
 pub enum Parameter {
     None,
@@ -192,13 +191,9 @@ pub struct Graph {
     operatands: Vec<Rc<RefCell<Operand>>>,
 }
 use std::fs::File;
-use std::io::Read;
-use std::io::{BufRead, BufReader, Error, Write};
-use std::num::ParseIntError;
-use std::sync::mpsc::Receiver;
+use std::io::{BufRead, BufReader};
 use std::{io, u32};
 
-use ndarray::FixedInitializer;
 
 fn read_magic_number(lines: &mut io::Lines<BufReader<File>>) -> u32 {
     let num_string = lines.next().expect("File is empty").unwrap();
@@ -285,14 +280,14 @@ impl Graph {
         println!("key:{}, value:{}", parmas_key, parmas_value);
         op.as_ref().borrow_mut().insert_parmas(parmas_key, parmas_value);
     }
-    pub fn load_attribute(&mut self, op: &Rc<RefCell<Operator>>, parmas_key: String, parmas_value: String){
+    pub fn load_attribute(&mut self, _op: &Rc<RefCell<Operator>>,_parmas_key: String, parmas_value: String){
 
 
     }
-    pub fn load(&mut self, param_path: &str, bin_path: &str) {
+    pub fn load(&mut self, param_path: &str, _bin_path: &str) {
         // let mut param_buff = std::io::Cursor::new(param_path);
         let input = File::open(param_path).expect("File is empty");
-        let mut buffered = BufReader::new(input);
+        let buffered = BufReader::new(input);
         // println!("{:?}", buffered.lines().next());
         // for line in buffered.lines() {
         //     println!("{:?}", line);
@@ -300,9 +295,9 @@ impl Graph {
         let mut lines: io::Lines<BufReader<File>> = buffered.lines();
         // read magic_number
 
-        let magic_number: u32 = read_magic_number(&mut lines);
+        let _magic_number: u32 = read_magic_number(&mut lines);
 
-        let (operator_count, operand_count) = read_operator_count(&mut lines);
+        let (_operator_count, _operand_count) = read_operator_count(&mut lines);
 
         for line in lines {
             let line_str = line.unwrap();
