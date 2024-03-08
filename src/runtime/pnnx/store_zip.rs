@@ -5,33 +5,36 @@ use std::path::Path;
 const LOCAL_FILE_HEADER_MAGIC: u32 = 0x04034b50;
 
 #[repr(packed)]
+#[derive(Debug)]
 struct LocalFileHeader {
-    version: u16,
-    flag: u16,
-    compression: u16,
-    last_modify_time: u16,
-    last_modify_date: u16,
-    crc32: u32,
-    compressed_size: u32,
-    uncompressed_size: u32,
-    file_name_length: u16,
-    extra_field_length: u16,
+    pub(crate) version: u16,
+    pub(crate) flag: u16,
+    pub(crate) compression: u16,
+    pub(crate) last_modify_time: u16,
+    pub(crate) last_modify_date: u16,
+    pub(crate) crc32: u32,
+    pub(crate) compressed_size: u32,
+    pub(crate) uncompressed_size: u32,
+    pub(crate) file_name_length: u16,
+    pub(crate) extra_field_length: u16,
 }
+
 impl LocalFileHeader {
     fn from_bytes(bytes: Vec<u8>) -> Result<Self, &'static str> {
         if bytes.len() < std::mem::size_of::<Self>() {
             return Err("Insufficient bytes to create LocalFileHeader");
         }
 
-        unsafe {
-            let header_bytes_size = std::mem::size_of::<LocalFileHeader>();
-            let x = &bytes[..header_bytes_size - 1];
-            // println!("{:?}", bytes_size);
+        let header: LocalFileHeader = unsafe {
+            const HEADER_BYTES_SIZE: usize = std::mem::size_of::<LocalFileHeader>();
+            let bytes: &[u8; HEADER_BYTES_SIZE] = bytes[..HEADER_BYTES_SIZE]
+                .as_ref()
+                .try_into()
+                .expect("Invalid byte slice size");
+            std::mem::transmute_copy(bytes)
+        };
 
-            // let mut header: LocalFileHeader = std::mem::transmute_copy(x);
-        }
-        Err("")
-        // Ok(header)
+        Ok(header)
     }
 }
 
@@ -121,10 +124,37 @@ mod test_local_file_header {
             0x0A, 0x00, // file_name_length
             0x00, 0x00, // extra_field_length
         ];
-        // match LocalFileHeader::from_bytes(bytes) {
-        //     Ok(header) => println!("{:?}", header),
-        //     Err(err) => println!("Error: {}", err),
-        // }
+        match LocalFileHeader::from_bytes(bytes) {
+            Ok(header) => println!("{:?}", header),
+            Err(err) => println!("Error: {}", err),
+        }
+    }
+    #[test]
+    fn test_from_bytes_by_less() {
+        let bytes: Vec<u8> = vec![
+            0x01, 0x00, // version
+            0x00, 0x00, // flag
+            0x00, 0x00, // compression
+            0x00, 0x00, // last_modify_time
+            0x00, 0x00, // last_modify_date
+            0x00, 0x00, 0x00, 0x00, // crc32
+            0x00, 0x00, 0x00, 0x00, // compressed_size
+            0x00, 0x00, 0x00, 0x00, // uncompressed_size
+            0x0A, 0x00, // file_name_length
+            0x00,  // extra_field_length
+        ];
+        match LocalFileHeader::from_bytes(bytes) {
+            Ok(header) => {
+                println!("{:?}", header);
+                panic!("");
+
+            },
+            Err(err) => {
+                println!("Error: {}", err);
+                assert_eq!("Insufficient bytes to create LocalFileHeader", err);
+
+            },
+        }
     }
     #[test]
     fn test_transmute_copy() {
