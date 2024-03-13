@@ -209,19 +209,8 @@ mod test_graph {
     use std::fs::File;
     use std::io::{self, Read};
     use std::rc::Rc;
+    use log::{info, trace, warn};
 
-    pub fn read_file(file_path: &str) -> io::Result<String> {
-        // 打开文件
-        let mut file = File::open(file_path)?;
-
-        // 创建一个字符串来存储文件内容
-        let mut content = String::new();
-
-        // 读取文件内容到字符串
-        file.read_to_string(&mut content)?;
-
-        Ok(content)
-    }
     #[test]
     fn test_graph_load_pnnx() {
         use kuiper_infer::pnnx::Graph;
@@ -319,5 +308,97 @@ mod test_graph {
         use kuiper_infer::pnnx::Graph;
         let mut graph = Graph::new();
         graph.new_operand("0".to_string());
+    }
+
+    #[test]
+    fn test_graph_graph_opos_from_test_pnnx(){
+        // 输出运算符号
+        use kuiper_infer::pnnx::Graph;
+        let param_path = "model_file/test_linear.pnnx.param";
+        let bin_path = "model_file/test_linear.pnnx.bin";
+        let graph = Graph::from_pnnx(param_path, bin_path);
+
+        for operator in graph.operators{
+            println!("operator name: {}", &operator.as_ref().borrow().name);
+        }
+
+    }
+    #[test]
+    fn test_graph_graph_operand_from_test_pnnx(){
+        // 输出运算符号
+        use kuiper_infer::pnnx::Graph;
+
+        let param_path = "model_file/test_linear.pnnx.param";
+        let bin_path = "model_file/test_linear.pnnx.bin";
+        let graph = Graph::from_pnnx(param_path, bin_path);
+
+        for operator in &graph.operators{
+            println!("operator name: {}", &operator.as_ref().borrow().name);  
+    
+            let operator_ref = operator.as_ref().borrow();
+
+            println!("OP Inputs: ");    
+            for input_operand in &operator_ref.inputs {
+                println!(
+                    "Input name: {}, shape:{:?}",
+                    input_operand.as_ref().borrow().name,
+                    input_operand.as_ref().borrow().shape
+                );
+            }
+
+            println!("OP Outputs: ");    
+            for output_operand in &operator_ref.outputs {
+                println!(
+                    "Input name: {}, shape:{:?}",
+                    output_operand.as_ref().borrow().name,
+                    output_operand.as_ref().borrow().shape
+                );
+            }
+            println!("------------------------------")
+        }
+
+    }
+
+    #[test] 
+    fn test_graph_graph_operands_and_params_from_test_pnnx(){
+        // 输出运算符号
+        use kuiper_infer::pnnx::Graph;
+
+        let param_path = "model_file/test_linear.pnnx.param";
+        let bin_path = "model_file/test_linear.pnnx.bin";
+        let graph = Graph::from_pnnx(param_path, bin_path);
+        for operator in &graph.operators{
+           
+            if &operator.as_ref().borrow().name != "linear"{
+                continue;
+            }
+            let operator_ref = operator.as_ref().borrow();
+            println!("operator name: {}", &operator.as_ref().borrow().name);  
+            println!("OP Inputs: ");    
+            for input_operand in &operator_ref.inputs {
+                println!(
+                    "Input name: {}, shape:{:?}",
+                    input_operand.as_ref().borrow().name,
+                    input_operand.as_ref().borrow().shape
+                );
+            }
+
+            println!("OP Outputs: ");    
+            for output_operand in &operator_ref.outputs {
+                println!(
+                    "Input name: {}, shape:{:?}",
+                    output_operand.as_ref().borrow().name,
+                    output_operand.as_ref().borrow().shape
+                );
+            }
+            println!("Params");
+            
+            for (param_name,param) in &operator_ref.params{
+                println!("param_name:{}, param:{:?}", param_name, param);
+
+            }
+            println!("------------------------------")
+        }
+
     }
 }
