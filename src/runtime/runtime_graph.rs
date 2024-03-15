@@ -10,22 +10,21 @@ use super::RuntimeOperand;
 use super::RuntimeOperator;
 use super::RuntimeParameter;
 
-pub struct RuntimeGraph<A, D: Dimension> {
+pub struct RuntimeGraph<A> {
     intput_name: String, //计算输入节点的名称
     output_name: String, //计算图输入节点的名称
     param_path: String,  //计算图的结构文件
     bin_path: String,    //计算图的权重文件
 
-    operators: Vec<Rc<RefCell<RuntimeOperator<A, D>>>>,
-    operators_maps: HashMap<String, Rc<RefCell<RuntimeOperator<A, D>>>>,
+    operators: Vec<Rc<RefCell<RuntimeOperator<A>>>>,
+    operators_maps: HashMap<String, Rc<RefCell<RuntimeOperator<A>>>>,
 
     graph: Rc<RefCell<pnnx::Graph>>,
 }
 
-impl<A, D> RuntimeGraph<A, D>
+impl<A> RuntimeGraph<A>
 where
     A: Clone + Zero,
-    D: Dimension,
 {
     pub fn new(param_path: String, bin_path: String) -> Self {
         RuntimeGraph {

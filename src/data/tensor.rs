@@ -2,20 +2,22 @@ use ndarray::prelude::*;
 use ndarray::Array;
 use ndarray::Shape;
 use num_traits::Zero;
+use ndarray::ArrayD;
+use ndarray::IxDyn;
 
-pub struct Tensor<A, D: Dimension> {
-    raw_shapes: D,
-    data: Array<A, D>,
+#[derive(Debug)]
+pub struct Tensor<A> {
+    raw_shapes: IxDyn,
+    data: ArrayD<A>,
 }
 
-impl<A, D> Tensor<A, D>
+impl<A> Tensor<A>
 where
     A: Clone + Zero,
-    D: Dimension,
 {
-    pub fn new(shape: Shape<D>) -> Tensor<A, D> {
-        let raw_shapes = shape.raw_dim().clone();
-        let data: ArrayBase<ndarray::OwnedRepr<A>, D> = Array::<A, D>::zeros(shape);
+    pub fn new(shape: &[usize]) -> Tensor<A> {
+        let raw_shapes = IxDyn(shape);
+        let data: ArrayD<A> = ArrayD::<A>::zeros(raw_shapes.clone());
 
         Tensor { raw_shapes, data }
     }
@@ -55,7 +57,7 @@ where
         
     }
 
-    pub fn channels(&self) -> &D {
+    pub fn channels(&self) -> &IxDyn {
         &self.raw_shapes
     }
 
@@ -63,7 +65,7 @@ where
         self.raw_shapes.size()
     }
 
-    pub fn set_data(&mut self, new_data: Array<A, D>) {
+    pub fn set_data(&mut self, new_data: ArrayD<A>) {
         self.data = new_data;
     }
 
@@ -83,7 +85,7 @@ where
     //     &self.raw_shapes
     // }
 
-    pub fn data(&self) -> &Array<A, D> {
+    pub fn data(&self) -> &ArrayD<A> {
         &self.data
     }
 
@@ -94,41 +96,130 @@ where
 
     pub fn slice<I>(&self, info:I) -> ArrayView<'_, A, I::OutDim>
     where
-        I: ndarray::SliceArg<D>
+        I: ndarray::SliceArg<IxDyn>  + std::fmt::Debug
     {
         self.data.view().slice_move(info)
     }
     
 }
+
+// extern crate kuiper_infer;
+
+
+
 #[cfg(test)]
-mod test_tensor{
+mod test_tensor {
     use super::*;
     use ndarray::prelude::*;
-    use ndarray::Dimension;
+    #[test]
+    fn test_new_tensor() {
+        let _tensor = Tensor::<f32>::new( & [1, 2, 5]);
 
-    struct ContainerTensor<A, D: Dimension> {
-        data1:Array<A, D>,
-        data2:Array<A, D>,
     }
-    // #[test]
-    // fn test_new_tensor() {
-    //     use ndarray::prelude::*;
-    //     use ndarray;
-    //     use ndarray::arr1;
-    //     use ndarray::arr3;
+    #[test]
+    fn test_tensor_init1(){
+        let f1 = Tensor::<f32>::new(&[3, 224, 224]);
 
-    //     let _tensor =  arr1(&[1.0, 2.0]);
-    //     let _tensor2  = arr3(&[[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]]);
-    //     let conatiner_tensr = ConatinerTensor{data1:_tensor, data2:_tensor2};
+        let mut x = [3, 224, 224].f();
+        x.set_f(false);
+        print!("{:?}", x);
 
-    // }
-    // #[test]
-    // fn test_new_tensor() {
-    //     use ndarray::arr1;
-    //     use ndarray::arr3;
+        assert_eq!(f1.channels().ndim(),3);
+        assert_eq!(f1.rows(), 224);
+        assert_eq!(f1.cols(), 224);
+        assert_eq!(f1.size(), 224 * 224 * 3);
 
-    //     let _tensor = arr1(&[1.0, 2.0]);
-    //     let _tensor2 = arr3(&[[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]]);
-    //     let container_tensor = ContainerTensor { data1: _tensor, data2: _tensor2 };
-    // }
-}   
+    }
+    #[test]
+    fn test_tensor_init2(){
+
+        let f1 = Tensor::<u32>::new(& [3, 224, 224]);
+
+        assert_eq!(f1.channels().ndim(), 3);
+        assert_eq!(f1.rows(), 224);
+        assert_eq!(f1.cols(), 224);
+        assert_eq!(f1.size(), 224 * 224 * 3);
+
+    }
+    #[test]
+    fn test_tensor_init3(){
+        let f1 = Tensor::<u32>::new(&[1, 13, 14]);
+
+
+        assert_eq!(f1.channels().ndim(), 3);
+        assert_eq!(f1.rows(), 13);
+        assert_eq!(f1.cols(), 14);
+        assert_eq!(f1.size(), 13 * 14);
+
+    }
+    #[test]
+    fn test_tensor_init4(){
+        let f1 = Tensor::<u32>::new(&[13, 15]);
+
+
+        assert_eq!(f1.ndim(), 2);
+        assert_eq!(f1.rows(), 13);
+        assert_eq!(f1.cols(), 15);
+        assert_eq!(f1.size(), 13 * 15);
+
+    }
+    #[test] 
+    fn test_tensor_init5(){
+
+        let f1 = Tensor::<u32>::new(&[16, 13, 15]);
+
+
+        assert_eq!(f1.ndim(), 3);
+        assert_eq!(f1.rows(), 13);
+        assert_eq!(f1.cols(), 15);
+        assert_eq!(f1.size(), 13 * 16 * 15);
+
+    }
+
+    #[test]
+    fn test_tensor_init_1d() {
+        let f1 = Tensor::<f32>::new(&[3]);
+
+        assert_eq!(f1.ndim(), 1);
+        assert_eq!(f1.channels()[0], 3);
+    }
+
+    #[test]
+    fn test_tensor_init_2d() {
+
+        let f1 = Tensor::<f32>::new(&[32, 24]);
+        let raw_shapes = f1.channels();
+
+        assert_eq!(raw_shapes.ndim(), 2);
+        assert_eq!(raw_shapes[0], 32);
+        assert_eq!(raw_shapes[1], 24);
+    }
+    #[test]
+    fn test_tensor_data(){
+
+        let f1 = Tensor::<f32>::new(&[32, 24]);
+        let data = f1.data();
+        println!("{:?}", data);
+    }
+
+    #[test]
+    fn test_set_data(){
+  
+        let mut f1 = Tensor::<f32>::new(& [3, 224, 224]);
+        let data = ArrayD::<f32>::zeros(IxDyn(&[3, 224, 224]));
+
+        f1.set_data(data);
+
+    }
+    #[test]
+    fn test_slice(){
+        let mut f1 = Tensor::<f32>::new(&[3, 224, 224]);
+
+        println!("Data in the first channel: {:?}", f1.slice(s![0, .., ..]).raw_dim()); 
+        println!("Data in the (1,1,1): {}", f1.data()[[1, 1, 1]]);
+    }
+
+
+
+
+}
