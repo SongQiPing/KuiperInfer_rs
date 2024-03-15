@@ -100,4 +100,35 @@ where
     }
     
 }
+#[cfg(test)]
+mod test_tensor{
+    use super::*;
+    use ndarray::prelude::*;
+    use ndarray::Dimension;
 
+    struct ContainerTensor<A, D: Dimension> {
+        data1:Array<A, D>,
+        data2:Array<A, D>,
+    }
+    // #[test]
+    // fn test_new_tensor() {
+    //     use ndarray::prelude::*;
+    //     use ndarray;
+    //     use ndarray::arr1;
+    //     use ndarray::arr3;
+
+    //     let _tensor =  arr1(&[1.0, 2.0]);
+    //     let _tensor2  = arr3(&[[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]]);
+    //     let conatiner_tensr = ConatinerTensor{data1:_tensor, data2:_tensor2};
+
+    // }
+    // #[test]
+    // fn test_new_tensor() {
+    //     use ndarray::arr1;
+    //     use ndarray::arr3;
+
+    //     let _tensor = arr1(&[1.0, 2.0]);
+    //     let _tensor2 = arr3(&[[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]]);
+    //     let container_tensor = ContainerTensor { data1: _tensor, data2: _tensor2 };
+    // }
+}   
