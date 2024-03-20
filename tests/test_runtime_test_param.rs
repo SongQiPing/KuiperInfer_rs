@@ -279,7 +279,7 @@ mod test_graph {
             .add_input_operand(operand1.clone());
 
         graph.load_shape(&operatoer, "0".to_string(), "(1,32)f32".to_string());
-        let vec: Vec<i32> = vec![1, 32];
+        let vec: Vec<usize> = vec![1, 32];
         assert_eq!(operand1.as_ref().borrow().get_shape(), &vec);
     }
     #[test]

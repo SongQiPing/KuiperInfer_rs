@@ -4,9 +4,9 @@ use crate::runtime::RuntimeDataType;
 use std::mem;
 
 pub struct RuntimeAttribute {
-    weight_data: Vec<u8>,   // 节点中的权重参数
-    shape: Vec<i32>,        // 节点中的形状信息
-    dtype: RuntimeDataType, // 节点中的数据类型
+    pub weight_data: Vec<u8>,   // 节点中的权重参数
+    pub shape: Vec<i32>,        // 节点中的形状信息
+    pub dtype: RuntimeDataType, // 节点中的数据类型
 }
 
 impl RuntimeAttribute {

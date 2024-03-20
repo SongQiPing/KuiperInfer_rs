@@ -94,10 +94,10 @@ impl Parameter {
     }
 }
 
-struct Attribute {
-    type_id: i32,
-    shape: Vec<i32>,
-    data: Vec<u8>,
+pub struct Attribute {
+    pub type_id: i32,
+    pub shape: Vec<i32>,
+    pub data: Vec<u8>,
 }
 impl Attribute {
     pub fn new() -> Self {
@@ -244,12 +244,12 @@ impl Operator {
 use std::cell::RefCell;
 use std::rc::Rc;
 pub struct Operand {
-    producer: Option<Rc<RefCell<Operator>>>,
-    consumers: Vec<Rc<RefCell<Operator>>>,
-    type_id: i32,
-    pub shape: Vec<i32>,
+    pub producer: Option<Rc<RefCell<Operator>>>,
+    pub consumers: Vec<Rc<RefCell<Operator>>>,
+    pub type_id: i32,
+    pub shape: Vec<usize>,
     pub name: String,
-    params: HashMap<String, Parameter>,
+    pub params: HashMap<String, Parameter>,
 }
 
 impl Operand {
@@ -274,10 +274,10 @@ impl Operand {
     pub fn add_consumer(&mut self, consumer: Rc<RefCell<Operator>>) {
         self.consumers.push(consumer);
     }
-    pub fn set_shape(&mut self, shape: Vec<i32>) {
+    pub fn set_shape(&mut self, shape: Vec<usize >) {
         self.shape = shape;
     }
-    pub fn get_shape(&self) -> &Vec<i32> {
+    pub fn get_shape(&self) -> &Vec<usize> {
         &self.shape
     }
 }
@@ -357,7 +357,7 @@ impl Graph {
 
         let lc = value[1..value.rfind(')').map_or(0, |pos| pos)].to_string();
 
-        let shape: Vec<i32> = lc.split(',').map(|s| s.trim().parse().unwrap()).collect();
+        let shape: Vec<usize> = lc.split(',').map(|s| s.trim().parse().unwrap()).collect();
         operand.borrow_mut().set_shape(shape);
     }
     pub fn load_input_key(
