@@ -205,10 +205,6 @@ mod test_parameter {
 
 #[cfg(test)]
 mod test_graph {
-    use std::cell::RefCell;
-    use std::rc::Rc;
-
-
     #[test]
     fn test_graph_load_pnnx() {
         use kuiper_infer::pnnx::Graph;
@@ -248,7 +244,7 @@ mod test_graph {
     #[test]
     fn test_get_operand() {
         use kuiper_infer::pnnx::Graph;
-        use kuiper_infer::pnnx::Operand;
+        use kuiper_infer::pnnx::SharedOperand;
 
         let mut graph = Graph::new();
         let operand1 = graph.new_operand("0".to_string());
@@ -257,7 +253,7 @@ mod test_graph {
         // operand2.borrow().set_producer();
         let cloned_operand_rc = operand1.clone();
 
-        let borrowed_operand: Rc<RefCell<Operand>> = cloned_operand_rc.clone();
+        let borrowed_operand: SharedOperand = cloned_operand_rc.clone();
         let operand_name: &String = &borrowed_operand.as_ref().borrow().name;
         assert_eq!(operand_name.clone(), "0".to_string());
     }
@@ -283,11 +279,11 @@ mod test_graph {
     #[test]
     fn test_load_input_key() {
         use kuiper_infer::pnnx::Graph;
-        use kuiper_infer::pnnx::Operand;
+        use kuiper_infer::pnnx::SharedOperand;
 
         let mut graph = Graph::new();
 
-        let operand1: Rc<RefCell<Operand>> = graph.new_operand("1".to_string());
+        let operand1: SharedOperand = graph.new_operand("1".to_string());
 
         let operatoer = graph.new_operator("pnnx.Input".to_string(), " pnnx_input_0 ".to_string());
         operatoer

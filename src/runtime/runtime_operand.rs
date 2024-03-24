@@ -1,6 +1,13 @@
+
+use std::{rc::Rc, cell::RefCell};
+
+
 use super::RuntimeDataType;
 use num_traits::Zero;
 use crate::data::SharedTensor;
+
+pub type SharedRuntimeOperand<A> = Rc<RefCell<RuntimeOperand<A>>>;
+
 pub struct RuntimeOperand<A> {
     pub name: String,                       // 操作数的名称
     pub shapes: Vec<usize>,                 // 操作数的形状

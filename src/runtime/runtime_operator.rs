@@ -1,13 +1,14 @@
 use crate::data::torch_utils::create_tensor;
 use crate::data::torch_utils::create_tensor_1;
 use crate::data::torch_utils::create_tensor_2;
-use crate::pnnx::Operator;
+use crate::pnnx::SharedOperator;
 use crate::pnnx::Parameter;
 
 use super::RuntimeAttribute;
 use super::RuntimeDataType;
 use super::RuntimeOperand;
-
+use super::SharedRuntimeOperand;
+use crate::pnnx::SharedOperand;
 use num_traits::Zero;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -20,7 +21,9 @@ fn check_shape(shapes: &Vec<usize>) {
 }
 
 struct Layer {}
-/// 计算图中的计算节点
+
+pub type SharedRuntimeOperator<A> = Rc<RefCell<RuntimeOperator<A>>>;
+
 pub struct RuntimeOperator<A> {
     pub has_forward: bool,
     pub name: String,             // 计算节点的名称
@@ -28,11 +31,11 @@ pub struct RuntimeOperator<A> {
     pub layer: Option<Rc<Layer>>, // 节点对应的计算Layer
 
     pub output_names: Vec<String>, // 节点的输出节点名称
-    pub output_operands: Option<Rc<RefCell<RuntimeOperand<A>>>>, // 节点的输出操作数
+    pub output_operands: Option<SharedRuntimeOperand<A>>, // 节点的输出操作数
 
-    pub input_operands: HashMap<String, Rc<RefCell<RuntimeOperand<A>>>>, // 节点的输入操作数
-    pub input_operands_seq: Vec<Rc<RefCell<RuntimeOperand<A>>>>, // 节点的输入操作数，顺序排列
-    pub output_operators: HashMap<String, Rc<RefCell<RuntimeOperator<A>>>>, // 输出节点的名字和节点对应
+    pub input_operands: HashMap<String,SharedRuntimeOperand<A>>, // 节点的输入操作数
+    pub input_operands_seq: Vec<SharedRuntimeOperand<A>>, // 节点的输入操作数，顺序排列
+    pub output_operators: HashMap<String, SharedRuntimeOperator<A>>, // 输出节点的名字和节点对应
 
     pub params: HashMap<String, Rc<RefCell<Parameter>>>, // 算子的参数信息
     pub attribute: HashMap<String, Rc<RefCell<RuntimeAttribute>>>, // 算子的属性信息，内含权重信息
@@ -64,7 +67,7 @@ impl RuntimeOperatorUtil {
      * 如果图是第二次以上运行，则检查输入operand的形状和operand中张量的形状是否匹配
      * @param operators 计算图中的计算节点
      */
-    pub fn init_operator_input<A>(operators: &Vec<Rc<RefCell<RuntimeOperator<A>>>>) {
+    pub fn init_operator_input<A>(operators: &Vec<SharedRuntimeOperator<A>>) {
         for operator in operators {
             let input_operand_map = &operator.as_ref().borrow().input_operands;
             for (_operand_name, operand) in input_operand_map {
@@ -91,8 +94,8 @@ impl RuntimeOperatorUtil {
         }
     }
     pub fn init_operator_output<A: Zero + Clone>(
-        pnnx_operators: &Vec<Rc<RefCell<Operator>>>,
-        operators: &Vec<Rc<RefCell<RuntimeOperator<A>>>>,
+        pnnx_operators: &Vec<SharedOperator>,
+        operators: &Vec<SharedRuntimeOperator<A>>,
     ) {
         assert!(!pnnx_operators.is_empty() && !operators.is_empty());
         assert!(pnnx_operators.len() == operators.len());
@@ -124,8 +127,8 @@ impl RuntimeOperatorUtil {
         }
     }
     pub fn check_and_reshape_tensors<A: Zero + Clone>(
-        output_operand:& mut Rc<RefCell<RuntimeOperand<A>>>,
-        pnnx_operand: &Rc<RefCell<crate::pnnx::Operand>>,
+        output_operand:& mut SharedRuntimeOperand<A>,
+        pnnx_operand: &SharedOperand,
     ){
         let operand_shapes = &pnnx_operand.borrow().shape;
         let batch = operand_shapes[0];
@@ -164,7 +167,7 @@ impl RuntimeOperatorUtil {
 
     }
     pub fn init_output_tensors<A: Zero + Clone>(
-        pnnx_operand: &Rc<RefCell<crate::pnnx::Operand>>,
+        pnnx_operand: &SharedOperand,
     ) ->Option<Rc<RefCell<RuntimeOperand<A>>>> {
         let mut output_operand = RuntimeOperand::<A>::new();
         output_operand.shapes =  pnnx_operand.as_ref().borrow().get_shape().clone();

@@ -176,9 +176,11 @@ fn type_to_elemsize(type_: i32) -> usize {
     }
 }
 
+pub type SharedOperator =  Rc<RefCell<Operator>>;
+
 pub struct Operator {
-    pub inputs: Vec<Rc<RefCell<Operand>>>,
-    pub outputs: Vec<Rc<RefCell<Operand>>>,
+    pub inputs: Vec<SharedOperand>,
+    pub outputs: Vec<SharedOperand>,
     pub type_name: String,
     pub name: String,
     pub input_names: Vec<String>,
@@ -197,14 +199,14 @@ impl Operator {
             attrs: HashMap::new(),
         }
     }
-    pub fn new_operator(type_name: String, name: String) -> Rc<RefCell<Operator>> {
+    pub fn new_operator(type_name: String, name: String) -> SharedOperator {
         Rc::new(RefCell::new(Operator::new(type_name, name)))
     }
-    pub fn add_input_operand(&mut self, input_operand: Rc<RefCell<Operand>>) {
+    pub fn add_input_operand(&mut self, input_operand: SharedOperand) {
         self.inputs.push(input_operand);
         self.input_names.push(String::new());
     }
-    pub fn add_output_operand(&mut self, output_operand: Rc<RefCell<Operand>>) {
+    pub fn add_output_operand(&mut self, output_operand: SharedOperand) {
         self.outputs.push(output_operand);
     }
     pub fn set_input_name(&mut self, input_name: String, operand_name: String) {
@@ -215,7 +217,7 @@ impl Operator {
             }
         }
     }
-    pub fn get_operand(&self, operand_name: String) -> Option<Rc<RefCell<Operand>>> {
+    pub fn get_operand(&self, operand_name: String) -> Option<SharedOperand> {
         for operand in self.inputs.iter() {
             if operand.as_ref().borrow().name == operand_name {
                 return Some(operand.clone());
@@ -243,9 +245,11 @@ impl Operator {
 }
 use std::cell::RefCell;
 use std::rc::Rc;
+pub type SharedOperand = Rc<RefCell<Operand>>;
+
 pub struct Operand {
-    pub producer: Option<Rc<RefCell<Operator>>>,
-    pub consumers: Vec<Rc<RefCell<Operator>>>,
+    pub producer: Option<SharedOperator>,
+    pub consumers: Vec<SharedOperator>,
     pub type_id: i32,
     pub shape: Vec<usize>,
     pub name: String,
@@ -264,14 +268,14 @@ impl Operand {
             params: HashMap::new(),
         }
     }
-    pub fn new_operand(name: String) -> Rc<RefCell<Operand>> {
+    pub fn new_operand(name: String) -> SharedOperand {
         Rc::new(RefCell::new(Operand::new(name)))
     }
 
-    pub fn set_producer(&mut self, producer: Rc<RefCell<Operator>>) {
+    pub fn set_producer(&mut self, producer: SharedOperator) {
         self.producer = Some(producer);
     }
-    pub fn add_consumer(&mut self, consumer: Rc<RefCell<Operator>>) {
+    pub fn add_consumer(&mut self, consumer: SharedOperator) {
         self.consumers.push(consumer);
     }
     pub fn set_shape(&mut self, shape: Vec<usize >) {
@@ -283,8 +287,8 @@ impl Operand {
 }
 
 pub struct Graph {
-    pub operators: Vec<Rc<RefCell<Operator>>>,
-    pub operatands: Vec<Rc<RefCell<Operand>>>,
+    pub operators: Vec<SharedOperator>,
+    pub operatands: Vec<SharedOperand>,
 }
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -331,7 +335,7 @@ impl Graph {
         graph
     }
 
-    pub fn get_operand(&self, operand_name: String) -> Option<Rc<RefCell<Operand>>> {
+    pub fn get_operand(&self, operand_name: String) -> Option<SharedOperand> {
         for op in self.operatands.iter() {
             if op.borrow().name == operand_name {
                 return Some(op.clone());
@@ -339,18 +343,18 @@ impl Graph {
         }
         None
     }
-    pub fn new_operator(&mut self, type_name: String, name: String) -> Rc<RefCell<Operator>> {
+    pub fn new_operator(&mut self, type_name: String, name: String) -> SharedOperator {
         let op = Operator::new_operator(type_name, name);
         self.operators.push(op.clone());
         op
     }
-    pub fn new_operand(&mut self, name: String) -> Rc<RefCell<Operand>> {
+    pub fn new_operand(&mut self, name: String) -> SharedOperand {
         let operand = Operand::new_operand(name);
         self.operatands.push(operand.clone());
         operand
     }
 
-    pub fn load_shape(&mut self, op: &Rc<RefCell<Operator>>, key: String, value: String) {
+    pub fn load_shape(&mut self, op: &SharedOperator, key: String, value: String) {
         let operand = op.as_ref().borrow().get_operand(key).unwrap();
 
         let _typestr = value[value.rfind(')').map_or(0, |pos| pos + 1)..].to_string();
@@ -362,7 +366,7 @@ impl Graph {
     }
     pub fn load_input_key(
         &mut self,
-        op: &Rc<RefCell<Operator>>,
+        op: &SharedOperator,
         input_name: String,
         operand_name: String,
     ) {
@@ -373,7 +377,7 @@ impl Graph {
 
     pub fn load_parameter(
         &mut self,
-        op: &Rc<RefCell<Operator>>,
+        op: &SharedOperator,
         parmas_key: String,
         parmas_value: String,
     ) {
@@ -384,7 +388,7 @@ impl Graph {
 
     pub fn load_attribute(
         &mut self,
-        op: &Rc<RefCell<Operator>>,
+        op: &SharedOperator,
         parmas_key: String,
         parmas_value: &String,
         store_zip_reader: &mut StoreZipReader,

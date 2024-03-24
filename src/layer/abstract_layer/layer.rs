@@ -1,7 +1,6 @@
-use crate::runtime::RuntimeOperator;
-use std::cell::RefCell;
-use std::rc::Rc;
 use crate::data::SharedTensor;
+use crate::runtime::SharedRuntimeOperator;
+
 pub enum LayerError {
     LocalFileHeaderInvalid,
     CentralDirectoryFileHeaderInvalid,
@@ -30,7 +29,7 @@ pub trait Layer<A> {
     fn set_weights_from_floats(&mut self, weights: &[A]);
     fn set_bias_from_floats(&mut self, bias: &[A]);
     fn layer_name(&self) -> &String;
-    fn set_runtime_operator(&mut self, runtime_operator: Rc<RefCell<RuntimeOperator<A>>>);
+    fn set_runtime_operator(&mut self, runtime_operator: SharedRuntimeOperator<A>);
 }
 
 trait NonParamLayer<A>: Layer<A> {}

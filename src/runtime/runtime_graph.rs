@@ -11,6 +11,10 @@ use super::RuntimeOperand;
 use super::RuntimeOperator;
 
 use super::RuntimeOperatorUtil;
+use super::SharedRuntimeOperator;
+use super::SharedRuntimeOperand;
+
+use crate::pnnx::SharedOperand;
 pub enum GraphState {
     Complete,
     NeedBuild,
@@ -23,9 +27,9 @@ pub struct RuntimeGraph<A> {
     param_path: String,  //计算图的结构文件
     bin_path: String,    //计算图的权重文件
 
-    operators: Vec<Rc<RefCell<RuntimeOperator<A>>>>,
-    operators_maps: HashMap<String, Rc<RefCell<RuntimeOperator<A>>>>,
-    topo_operators:Vec<Rc<RefCell<RuntimeOperator<A>>>>,
+    operators: Vec<SharedRuntimeOperator<A>>,
+    operators_maps: HashMap<String, SharedRuntimeOperator<A>>,
+    topo_operators:Vec<SharedRuntimeOperator<A>>,
 
     graph: Box<pnnx::Graph>,
     graph_state :GraphState
@@ -78,13 +82,13 @@ where
         self.operators_maps.clear();
 
         for operator in operators {
-            let runtime_operator: Rc<RefCell<RuntimeOperator<A>>> =
+            let runtime_operator: SharedRuntimeOperator<A> =
                 Rc::new(RefCell::new(RuntimeOperator::<A>::new()));
             runtime_operator.borrow_mut().name = operator.as_ref().borrow().name.clone();
             runtime_operator.borrow_mut().type_name = operator.as_ref().borrow().type_name.clone();
 
             // 初始化算子中的input
-            let inputs: &Vec<Rc<RefCell<pnnx::Operand>>> = &operator.as_ref().borrow().inputs;
+            let inputs: &Vec<SharedOperand> = &operator.as_ref().borrow().inputs;
             self.init_graph_operators_input(inputs, &runtime_operator);
 
             //记录输出operand的名称
@@ -104,7 +108,7 @@ where
         self.graph_state = GraphState::NeedBuild;
 
     }
-    pub fn init_graph_params(& self, param_map:& HashMap<String, pnnx::Parameter>, runtime_operator: &Rc<RefCell<RuntimeOperator<A>>>){
+    pub fn init_graph_params(& self, param_map:& HashMap<String, pnnx::Parameter>, runtime_operator: &SharedRuntimeOperator<A>){
         for (key, val) in param_map.iter() {
             runtime_operator.borrow_mut().params.insert(key.clone(), Rc::new(RefCell::new(val.clone())));
         }
@@ -113,7 +117,7 @@ where
     pub fn init_graph_attrs(
         &self,
         attribute_map: &HashMap<String, pnnx::graph::Attribute>,
-        runtime_operator: &Rc<RefCell<RuntimeOperator<A>>>,
+        runtime_operator: &SharedRuntimeOperator<A>,
     ) {
         for (key, val) in attribute_map.iter() {
             match val.type_id {
@@ -135,8 +139,8 @@ where
     }
     pub fn init_graph_operator_output(
         &self,
-        outputs: &Vec<Rc<RefCell<pnnx::Operand>>>,
-        runtime_operator: &Rc<RefCell<RuntimeOperator<A>>>,
+        outputs: &Vec<SharedOperand>,
+        runtime_operator: &SharedRuntimeOperator<A>,
     ) {
         if outputs.is_empty() {
             return;
@@ -155,18 +159,18 @@ where
 
     pub fn init_graph_operators_input(
         &self,
-        inputs: &Vec<Rc<RefCell<pnnx::Operand>>>,
-        runtime_operator: &Rc<RefCell<RuntimeOperator<A>>>,
+        inputs: &Vec<SharedOperand>,
+        runtime_operator: &SharedRuntimeOperator<A>,
     ) {
         for input in inputs {
             let producer = &input.as_ref().borrow().producer;
             if let Some(producer) = producer {
-                let runtime_operand: Rc<RefCell<RuntimeOperand<A>>> =
+                let runtime_operand:SharedRuntimeOperand<A> =
                     Rc::new(RefCell::new(RuntimeOperand::<A>::new()));
                 runtime_operand.borrow_mut().name = producer.as_ref().borrow().name.clone();
                 runtime_operand.borrow_mut().shapes = input.as_ref().borrow().shape.clone();
             }
-            let runtime_operand: Rc<RefCell<RuntimeOperand<A>>> =
+            let runtime_operand:SharedRuntimeOperand<A> =
                 Rc::new(RefCell::new(RuntimeOperand::<A>::new()));
             runtime_operand.borrow_mut().name =
                 producer.as_ref().expect("REASON").borrow().name.clone();
@@ -237,7 +241,7 @@ where
 
     }
 
-    pub fn reverse_topo(root_op:& Rc<RefCell<RuntimeOperator<A>>>, topo_operators:& mut Vec<Rc<RefCell<RuntimeOperator<A>>>>){
+    pub fn reverse_topo(root_op:& SharedRuntimeOperator<A>, topo_operators:& mut Vec<SharedRuntimeOperator<A>>){
 
 
         root_op.borrow_mut().has_forward = true;
@@ -249,7 +253,7 @@ where
         topo_operators.push(root_op.clone());
 
     }
-    pub fn get_topo_queues(& self) -> & Vec<Rc<RefCell<RuntimeOperator<A>>>>{
+    pub fn get_topo_queues(& self) -> & Vec<SharedRuntimeOperator<A>>{
         & self.topo_operators
     }
 }
