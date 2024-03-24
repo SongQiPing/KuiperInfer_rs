@@ -1,9 +1,6 @@
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::Cursor;
 use std::io::{BufReader, Read, Seek, SeekFrom};
-use std::cell::RefCell;
-use std::rc::Rc;
 // 部分代码参考：
 // https://github.com/makepad/makepad/blob/c74cb133fb1e8e5a03d287374c5cdf20230ec53a/libs/miniz/src/zip_file.rs#L173
 //
@@ -272,23 +269,6 @@ pub struct StoreZipReader {
     filemetas: HashMap<String, CentralDirectoryFileHeader>,
 }
 
-pub struct StoreZipMeta {
-    offset: usize,
-    size: usize,
-}
-impl StoreZipMeta {
-    pub fn from_stream(
-        zip_data: &mut (impl Seek + Read),
-        compressed_size: u32,
-    ) -> Result<Self, ZipError> {
-        let offset = zip_data.seek(SeekFrom::Current(0)).unwrap();
-        let size = compressed_size;
-        Ok(StoreZipMeta {
-            offset: offset as usize,
-            size: size as usize,
-        })
-    }
-}
 fn read_file(path: &str) -> Option<File> {
     let file = File::open(path).unwrap();
     Some(file)
@@ -385,14 +365,13 @@ mod test_store_zip_read {
     #[test]
     fn open_file() {
         let file_path = "model_file/test_linear.pnnx.bin".to_string();
-        let mut store_zip_reader = StoreZipReader::from_file(&file_path);
+        let _store_zip_reader = StoreZipReader::from_file(&file_path);
         // store_zip_reader.open(&file_path)`e
     }
 }
 #[cfg(test)]
 mod test_zip_rs {
-    use std::io::{Read, Seek, SeekFrom};
-    use zip::result::ZipError;
+    use std::io::{Read};
 
     fn read_u16(zip_data: &mut impl Read) -> u16 {
         let mut bytes = [0u8; 2];
@@ -449,7 +428,7 @@ mod test_zip_rs {
     }
     #[test]
     fn test_read_local_file_header() {
-        use std::io::{BufReader, Read};
+        use std::io::{BufReader};
         let file_path = "model_file/test_linear.pnnx.bin".to_string();
         let zipfile = std::fs::File::open(file_path).unwrap();
         // let x = zipfile.bytes();

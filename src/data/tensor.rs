@@ -1,6 +1,4 @@
 use ndarray::prelude::*;
-use ndarray::Array;
-use ndarray::Shape;
 use num_traits::Zero;
 use ndarray::ArrayD;
 use ndarray::IxDyn;
@@ -116,7 +114,6 @@ where
 #[cfg(test)]
 mod test_tensor {
     use super::*;
-    use ndarray::prelude::*;
     #[test]
     fn test_new_tensor() {
         let _tensor = Tensor::<f32>::new( & [1, 2, 5]);
@@ -126,7 +123,7 @@ mod test_tensor {
     fn test_tensor_init1(){
         let f1 = Tensor::<f32>::new(&[3, 224, 224]);
 
-        let mut x = [3, 224, 224].f();
+        let x = [3, 224, 224].f();
         x.set_f(false);
         print!("{:?}", x);
 
@@ -219,7 +216,7 @@ mod test_tensor {
     }
     #[test]
     fn test_slice(){
-        let mut f1 = Tensor::<f32>::new(&[3, 224, 224]);
+        let f1 = Tensor::<f32>::new(&[3, 224, 224]);
 
         println!("Data in the first channel: {:?}", f1.slice(s![0, .., ..]).raw_dim()); 
         println!("Data in the (1,1,1): {}", f1.data()[[1, 1, 1]]);

@@ -1,9 +1,4 @@
 use std::rc::Rc;
-use std::cell::RefCell;
-use num_traits::Zero;
-
-use crate::status_code::StatusCode;
-use crate::data::Tensor;
 use std::collections::HashMap;
 use crate::runtime::RuntimeOperator;
 use crate::status_code::ParseParameterAttrStatus;
@@ -67,9 +62,6 @@ impl LayerRegisterer{
 // }
 #[cfg(test)]
 mod test_runtime_operator_util {
-    use super::*;
-
-    
     #[test]
     fn test_init_operator_input() {
         // LayerRegisterer::get_registry();

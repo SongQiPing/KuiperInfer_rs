@@ -206,10 +206,8 @@ mod test_parameter {
 #[cfg(test)]
 mod test_graph {
     use std::cell::RefCell;
-    use std::fs::File;
-    use std::io::{self, Read};
     use std::rc::Rc;
-    use log::{info, trace, warn};
+
 
     #[test]
     fn test_graph_load_pnnx() {

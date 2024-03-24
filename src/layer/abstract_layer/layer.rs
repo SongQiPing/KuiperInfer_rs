@@ -1,6 +1,4 @@
-use crate::data::Tensor;
 use crate::runtime::RuntimeOperator;
-use crate::status_code::StatusCode;
 use std::cell::RefCell;
 use std::rc::Rc;
 use crate::data::SharedTensor;
@@ -39,10 +37,9 @@ trait NonParamLayer<A>: Layer<A> {}
 
 #[cfg(test)]
 mod test_abrastra_layer {
-    use super::*;
     #[test]
     fn test_new() {
-        let layer_name = "abstra_layer".to_string();
+        let _layer_name = "abstra_layer".to_string();
         // let abrastra_layer = AbrastraLayer::<f32>::new(& layer_name);
     }
 

@@ -1,7 +1,7 @@
-use ndarray::prelude::*;
+
 use num_traits::Zero;
 use std::cell::RefCell;
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use super::pnnx;
@@ -9,7 +9,7 @@ use super::RuntimeAttribute;
 use super::RuntimeDataType;
 use super::RuntimeOperand;
 use super::RuntimeOperator;
-use super::RuntimeParameter;
+
 use super::RuntimeOperatorUtil;
 pub enum GraphState {
     Complete,
@@ -223,7 +223,7 @@ where
 
         // 构建拓扑顺序 
         self.topo_operators.clear();
-        for (name, operator) in & self.operators_maps{
+        for (_, operator) in & self.operators_maps{
             if operator.borrow().type_name == "pnnx.Input".to_string() && !operator.borrow().has_forward{
                 Self::reverse_topo(operator, & mut self.topo_operators);
             }
@@ -241,7 +241,7 @@ where
 
 
         root_op.borrow_mut().has_forward = true;
-        for (name, next_operator) in &root_op.borrow().output_operators{
+        for (_, next_operator) in &root_op.borrow().output_operators{
             if !next_operator.borrow().has_forward{
                 Self::reverse_topo(next_operator,  topo_operators);
             }
@@ -262,7 +262,7 @@ mod test_runrime_graph {
     fn test_new_graph() {
         let param_path = "model_file/test_linear.pnnx.param".to_string();
         let bin_path = "model_file/test_linear.pnnx.bin".to_string();
-        let runtime_grpah: RuntimeGraph<f32> = RuntimeGraph::<f32>::new(param_path, bin_path);
+        let _runtime_grpah: RuntimeGraph<f32> = RuntimeGraph::<f32>::new(param_path, bin_path);
     }
     #[test]
     #[should_panic(expected = "The bin path or param path is empty")]

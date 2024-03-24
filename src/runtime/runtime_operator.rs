@@ -7,11 +7,10 @@ use crate::pnnx::Parameter;
 use super::RuntimeAttribute;
 use super::RuntimeDataType;
 use super::RuntimeOperand;
-use super::RuntimeParameter;
-use ndarray::prelude::*;
+
 use num_traits::Zero;
 use std::cell::RefCell;
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::rc::Rc;
 fn check_shape(shapes: &Vec<usize>) {
     assert!(
@@ -68,7 +67,7 @@ impl RuntimeOperatorUtil {
     pub fn init_operator_input<A>(operators: &Vec<Rc<RefCell<RuntimeOperator<A>>>>) {
         for operator in operators {
             let input_operand_map = &operator.as_ref().borrow().input_operands;
-            for (operand_name, operand) in input_operand_map {
+            for (_operand_name, operand) in input_operand_map {
 
                 let operand_type = &operand.borrow().data_type.clone();
                 match operand_type {
@@ -81,10 +80,10 @@ impl RuntimeOperatorUtil {
                 }
                 let input_operand_shape = &operand.borrow().shapes.clone();
                 //得到初始化的空间
-                let mut input_datas = &operand.borrow_mut().datas;
+                let _input_datas = &operand.borrow_mut().datas;
                 // println!("input_data:{}", input_datas.len());
                 //检查形状是否符合要求
-                let batch = input_operand_shape[0];
+                let _batch = input_operand_shape[0];
                 check_shape(&input_operand_shape);
 
                 // TODO:
@@ -204,7 +203,7 @@ mod test_operator {
     use super::*;
     #[test]
     fn test_new() {
-        let operator = RuntimeOperator::<f32>::new();
+        let _operator = RuntimeOperator::<f32>::new();
     }
 }
 
