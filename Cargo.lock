@@ -418,6 +418,7 @@ dependencies = [
  "blas-src",
  "env_logger 0.6.2",
  "flate2",
+ "lazy_static",
  "log",
  "ndarray",
  "num-traits",
