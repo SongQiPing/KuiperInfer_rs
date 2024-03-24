@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RuntimeDataType {
     TypeUnknown = 0,
     TypeFloat32 = 1,

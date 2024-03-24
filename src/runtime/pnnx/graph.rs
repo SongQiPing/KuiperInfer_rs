@@ -258,7 +258,7 @@ impl Operand {
         Operand {
             producer: Option::None,
             consumers: Vec::new(),
-            type_id: 0,
+            type_id: 1,
             shape: Vec::new(),
             name: name,
             params: HashMap::new(),

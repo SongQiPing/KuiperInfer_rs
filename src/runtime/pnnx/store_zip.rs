@@ -95,7 +95,6 @@ pub struct CentralDirectoryFileHeader {
 impl CentralDirectoryFileHeader {
     pub fn from_stream(zip_data: &mut (impl Seek + Read)) -> Result<Self, ZipError> {
         let signature = read_u32(zip_data)?;
-        println!("{}", signature);
 
         if signature != CENTRAL_DIR_FILE_HEADER_SIGNATURE {
             return Err(ZipError::CentralDirectoryFileHeaderInvalid);
@@ -305,22 +304,13 @@ impl StoreZipReader {
 
     pub fn from_file(path: &str) -> Self {
         let mut zip_reader: BufReader<File> = BufReader::new(read_file(path).unwrap());
-        
-        // 文件
-        let file_header = LocalFileHeader::from_stream(&mut zip_reader).unwrap();
-        println!("{}", file_header.file_name);
-        println!("{}", zip_reader.seek(SeekFrom::Current(0)).unwrap());
 
         zip_reader
             .seek(SeekFrom::End(-(END_OF_CENTRAL_DIRECTORY_SIZE as i64)))
             .map_err(|_| ZipError::CantSeekToDirEnd)
             .unwrap();
         let eocd = EndOfCentralDirectory::from_stream(&mut zip_reader).unwrap();
-        println!(
-            "central_directory_offset：{}",
-            eocd.central_directory_offset
-        );
-
+        
         zip_reader
             .seek(SeekFrom::Start(eocd.central_directory_offset as u64))
             .map_err(|_| ZipError::CantSeekToDirStart)
@@ -330,9 +320,6 @@ impl StoreZipReader {
 
         for _ in 0..eocd.total_entries_all_disk as usize {
             let file_header = CentralDirectoryFileHeader::from_stream(&mut zip_reader).unwrap();
-            // println!(":?", & file_header);
-            // println!("{}", file_header.file_name);
-            println!("{}", &file_header.file_name);
             filemetas.insert(file_header.file_name.clone(), file_header);
         }
 
@@ -427,7 +414,7 @@ mod test_zip_rs {
         let file_path = "model_file/test_linear.pnnx.bin".to_string();
         let zipfile = std::fs::File::open(file_path).unwrap();
         let mut archive = zip::ZipArchive::new(zipfile).unwrap();
-        // println!("{:?}", archive);
+
         for i in 0..archive.len() {
             let mut file = archive.by_index(i).unwrap();
             let outpath = match file.enclosed_name() {

@@ -4,7 +4,9 @@ use ndarray::Shape;
 use num_traits::Zero;
 use ndarray::ArrayD;
 use ndarray::IxDyn;
-
+use std::cell::RefCell;
+use std::rc::Rc;
+pub type SharedTensor<A> = Rc<RefCell<Tensor<A>>>;
 #[derive(Debug)]
 pub struct Tensor<A> {
     raw_shapes: IxDyn,
@@ -81,9 +83,13 @@ where
     //     self.data.get_mut(offset).unwrap_or(&mut 0.0)
     // }
 
-    // pub fn raw_shapes(&self) -> &Vec<usize> {
-    //     &self.raw_shapes
-    // }
+    pub fn shapes(&self) -> Vec<usize> {
+        let mut shape:Vec<usize> = Vec::new();
+        for i in 0..self.raw_shapes.ndim(){
+            shape.push(self.raw_shapes[i]);
+        }
+        shape
+    }
 
     pub fn data(&self) -> &ArrayD<A> {
         &self.data
