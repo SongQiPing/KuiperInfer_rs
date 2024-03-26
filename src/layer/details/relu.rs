@@ -82,6 +82,11 @@ mod test_abrastra_layer {
 
     use super::*;
     use crate::data::Tensor;
+    use crate::layer::LayerRegisterer;
+    use ndarray::ArrayD;
+    use ndarray_rand::RandomExt;
+    use ndarray_rand::rand_distr::Uniform;
+    use ndarray::IxDyn;
 
     #[test]
     fn test_relu_forward() {
@@ -100,4 +105,32 @@ mod test_abrastra_layer {
             .forward_with_tensors(&input_data, &output_data)
             .unwrap();
     }
+    #[test]
+    fn test_create_layer_find(){
+        // 检查nn.ReLu 算子是否注册
+        let layer_type ="nn.ReLu".to_string();
+        assert!(LayerRegisterer::check_operator_registration(&layer_type));
+    }
+
+    #[test_log::test]
+    fn test_create_layer_reluforward(){
+        use crate::layer::LayerRegisterer;
+        use crate::runtime::RuntimeOperator;
+        use std::rc::Rc;
+        use std::cell::RefCell;
+        use log::info;
+        let mut runtime_operator = RuntimeOperator::<f32>::new();
+        runtime_operator.type_name = "nn.ReLu".to_string();
+        let runtime_operator = Rc::new(RefCell::new(runtime_operator));
+        let relu_layer = LayerRegisterer::create_layer(&runtime_operator);
+        
+        let mut input_data = Tensor::<f32>::new(&[3, 4, 4]);
+        input_data.data = ArrayD::random(IxDyn(&[3, 4, 4]), Uniform::new(-5., 5.0));
+        
+        info!("{:?}", input_data);
+        let input_data =vec![ Rc::new(RefCell::new(input_data))];
+        let out_data = input_data.clone();
+        relu_layer.forward_with_tensors(&input_data, &out_data).unwrap();
+        info!("{:?}", out_data);
+    } 
 }

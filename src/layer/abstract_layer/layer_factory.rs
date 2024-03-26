@@ -90,6 +90,26 @@ impl LayerRegisterer {
         let layer_ptr: Rc<dyn Layer<f32>> = creator(operator.clone());
         layer_ptr
     }
+    /// 检查算子是否在注册注册表中
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use kuiper_infer::layer::LayerRegisterer;
+    /// let layer_type = "nn.ReLu".to_string();
+    /// assert!(LayerRegisterer::check_operator_registration(&layer_type));
+    /// ```
+    pub fn check_operator_registration(layer_type:&String) -> bool{
+        let registry= & mut LayerRegisterer::get_registry().lock().unwrap();
+        match registry.get(layer_type){
+            Some(_) =>{
+                true
+            }
+            None =>{
+                false
+            }
+        }
+    }
 }
 
 #[cfg(test)]
