@@ -8,12 +8,12 @@ pub type SharedTensor<A> = Rc<RefCell<Tensor<A>>>;
 #[derive(Debug)]
 pub struct Tensor<A> {
     raw_shapes: IxDyn,
-    data: ArrayD<A>,
+    pub data: ArrayD<A>,
 }
 
 impl<A> Tensor<A>
 where
-    A: Clone + Zero,
+    A: Clone + Zero+?Sized
 {
     pub fn new(shape: &[usize]) -> Tensor<A> {
         let raw_shapes = IxDyn(shape);
@@ -69,17 +69,17 @@ where
         self.data = new_data;
     }
 
-    // pub fn empty(&self) -> bool {
-    //     self.data.is_empty()
-    // }
+    pub fn empty(&self) -> bool {
+        self.data.is_empty()
+    }
 
-    // pub fn index(&self, offset: usize) -> f32 {
-    //     self.data.get(offset).copied().unwrap_or(0.0)
-    // }
+    pub fn index(&self, offset: usize) -> &A {
+        self.data.get(offset).unwrap()
+    }
 
-    // pub fn index_mut(&mut self, offset: usize) -> &mut f32 {
-    //     self.data.get_mut(offset).unwrap_or(&mut 0.0)
-    // }
+    pub fn index_mut(&mut self, offset: usize) -> &mut A {
+        self.data.get_mut(offset).unwrap()
+    }
 
     pub fn shapes(&self) -> Vec<usize> {
         let mut shape:Vec<usize> = Vec::new();
@@ -221,7 +221,6 @@ mod test_tensor {
         println!("Data in the first channel: {:?}", f1.slice(s![0, .., ..]).raw_dim()); 
         println!("Data in the (1,1,1): {}", f1.data()[[1, 1, 1]]);
     }
-
 
 
 
