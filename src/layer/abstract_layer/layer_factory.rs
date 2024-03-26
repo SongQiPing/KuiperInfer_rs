@@ -1,22 +1,25 @@
-
+use crate::layer::Layer;
+use crate::runtime::{RuntimeOperator, SharedRuntimeOperator};
 use lazy_static::lazy_static;
 use num_traits::Zero;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::ops::Neg;
 use std::rc::Rc;
 use std::sync::Mutex;
-use std::ops::Neg;
-use crate::layer::Layer;
-use crate::runtime::{RuntimeOperator, SharedRuntimeOperator};
 
-type Creator<A> = fn(SharedRuntimeOperator<A>) -> Rc<dyn Layer<A>>;
+use crate::layer::LayerError;
+
+type Creator<A> = fn(SharedRuntimeOperator<A>) -> Result<Rc<dyn Layer<A>>, LayerError>;
 type CreateRegistry<A> = HashMap<String, Creator<A>>;
 pub struct LayerRegistry<A> {
     pub registry: CreateRegistry<A>,
 }
 impl<A> LayerRegistry<A>
 where
-    A: Clone + Zero + PartialOrd +Neg+  'static, f32: From<A>,A:From<f32>
+    A: Clone + Zero + PartialOrd + Neg + 'static,
+    f32: From<A>,
+    A: From<f32>,
 {
     fn new() -> Self {
         let registry = HashMap::new();
@@ -32,7 +35,7 @@ where
         self.registry.insert(layer_type, creator);
     }
 
-    pub fn get(&self, layer_type: &String) -> Option<& Creator<A>>{
+    pub fn get(&self, layer_type: &String) -> Option<&Creator<A>> {
         self.registry.get(layer_type)
     }
 }
@@ -42,7 +45,6 @@ lazy_static! {
 }
 
 pub struct LayerRegisterer {}
-
 
 impl LayerRegisterer {
     ///  返回算子的注册表
@@ -67,8 +69,11 @@ impl LayerRegisterer {
     /// use kuiper_infer::layer::details::relu::ReLULayer;
     /// LayerRegisterer::register_creator("nn.ReLu".to_string(), ReLULayer::<f32>::get_instance);
     /// ```
-    pub fn register_creator(layer_type:String, creator:Creator<f32>) {
-        OPERATOR_REGISTRY_F32.lock().unwrap().register_creator(layer_type, creator);
+    pub fn register_creator(layer_type: String, creator: Creator<f32>) {
+        OPERATOR_REGISTRY_F32
+            .lock()
+            .unwrap()
+            .register_creator(layer_type, creator);
     }
     ///  从注册器中取出算子
     ///
@@ -84,11 +89,11 @@ impl LayerRegisterer {
     /// let runtime_operator = Rc::new(RefCell::new(runtime_operator));
     /// let _relu_layer = LayerRegisterer::create_layer(&runtime_operator);
     /// ```
-    pub fn create_layer(operator:& Rc<RefCell<RuntimeOperator<f32>>>) -> Rc<dyn Layer<f32>> {
-        let registry= & mut LayerRegisterer::get_registry().lock().unwrap();
+    pub fn create_layer(operator: &Rc<RefCell<RuntimeOperator<f32>>>) -> Rc<dyn Layer<f32>> {
+        let registry = &mut LayerRegisterer::get_registry().lock().unwrap();
         let layer_type = &operator.borrow().type_name;
         let creator = registry.get(layer_type).unwrap();
-        let layer_ptr: Rc<dyn Layer<f32>> = creator(operator.clone());
+        let layer_ptr: Rc<dyn Layer<f32>> = creator(operator.clone()).unwrap();
         layer_ptr
     }
     /// 检查算子是否在注册注册表中
@@ -100,15 +105,11 @@ impl LayerRegisterer {
     /// let layer_type = "nn.ReLu".to_string();
     /// assert!(LayerRegisterer::check_operator_registration(&layer_type));
     /// ```
-    pub fn check_operator_registration(layer_type:&String) -> bool{
-        let registry= & mut LayerRegisterer::get_registry().lock().unwrap();
-        match registry.get(layer_type){
-            Some(_) =>{
-                true
-            }
-            None =>{
-                false
-            }
+    pub fn check_operator_registration(layer_type: &String) -> bool {
+        let registry = &mut LayerRegisterer::get_registry().lock().unwrap();
+        match registry.get(layer_type) {
+            Some(_) => true,
+            None => false,
         }
     }
 }
@@ -119,11 +120,11 @@ mod test_runtime_operator_util {
     #[test]
     fn test_get_relu() {
         let _relu_layer = LayerRegisterer::get_registry();
-            use crate::layer::LayerRegisterer;
-            use crate::runtime::RuntimeOperator;
-            let mut runtime_operator = RuntimeOperator::<f32>::new();
-            runtime_operator.type_name = "nn.ReLu".to_string();
-            let runtime_operator = Rc::new(RefCell::new(runtime_operator));
-            let _relu_layer: Rc<dyn Layer<f32>> = LayerRegisterer::create_layer(&runtime_operator);
+        use crate::layer::LayerRegisterer;
+        use crate::runtime::RuntimeOperator;
+        let mut runtime_operator = RuntimeOperator::<f32>::new();
+        runtime_operator.type_name = "nn.ReLu".to_string();
+        let runtime_operator = Rc::new(RefCell::new(runtime_operator));
+        let _relu_layer: Rc<dyn Layer<f32>> = LayerRegisterer::create_layer(&runtime_operator);
     }
 }

@@ -26,8 +26,12 @@ where
             layer_name: "nn.ReLu".to_string(),
         }
     }
-    pub fn get_instance(runtime_operator: SharedRuntimeOperator<A>) -> Rc<dyn Layer<A>> {
-        Rc::new(Self::new(RuntimeOperatorData::new_from(runtime_operator)))
+    pub fn get_instance(
+        runtime_operator: SharedRuntimeOperator<A>,
+    ) -> Result<Rc<dyn Layer<A>>, LayerError> {
+        Ok(Rc::new(Self::new(RuntimeOperatorData::new_from(
+            runtime_operator,
+        ))))
     }
 }
 use std::convert::From;
@@ -42,11 +46,11 @@ where
         let layer_input_datas = self.runtime_operator.prepare_input_tensor();
         let layer_ouput_datas = self.runtime_operator.prepare_output_tensor();
 
-        if let Err(e) =  self.check_inputs_and_outputs(&layer_input_datas, &layer_ouput_datas){
+        if let Err(e) = self.check_inputs_and_outputs(&layer_input_datas, &layer_ouput_datas) {
             return Err(e);
         }
 
-        if let Err(e) =  self.forward_with_tensors(&layer_input_datas, &layer_ouput_datas){
+        if let Err(e) = self.forward_with_tensors(&layer_input_datas, &layer_ouput_datas) {
             return Err(e);
         }
         Ok(())
@@ -56,7 +60,6 @@ where
         inputs: &Vec<SharedTensor<A>>,
         outputs: &Vec<SharedTensor<A>>,
     ) -> Result<(), LayerError> {
-
         let batch_size = inputs.len();
         for i in 0..batch_size {
             let input_data = &inputs[i];
@@ -129,7 +132,7 @@ mod test_sigmoid_layer {
 
         info!("{:?}", input_data);
         let input_data = vec![Rc::new(RefCell::new(input_data))];
-        let out_data =  vec![Rc::new(RefCell::new(out_data))];
+        let out_data = vec![Rc::new(RefCell::new(out_data))];
         sigmoid_layer
             .forward_with_tensors(&input_data, &out_data)
             .unwrap();

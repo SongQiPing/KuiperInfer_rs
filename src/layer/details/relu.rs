@@ -24,8 +24,12 @@ where
             layer_name: "nn.ReLu".to_string(),
         }
     }
-    pub fn get_instance(runtime_operator: SharedRuntimeOperator<A>) -> Rc<dyn Layer<A>> {
-        Rc::new(Self::new(RuntimeOperatorData::new_from(runtime_operator)))
+    pub fn get_instance(
+        runtime_operator: SharedRuntimeOperator<A>,
+    ) -> Result<Rc<dyn Layer<A>>, LayerError> {
+        Ok(Rc::new(Self::new(RuntimeOperatorData::new_from(
+            runtime_operator,
+        ))))
     }
 }
 impl<A> Layer<A> for ReLULayer<A>
@@ -36,11 +40,11 @@ where
         let layer_input_datas = self.runtime_operator.prepare_input_tensor();
         let layer_ouput_datas = self.runtime_operator.prepare_output_tensor();
 
-        if let Err(e) =  self.check_inputs_and_outputs(&layer_input_datas, &layer_ouput_datas){
+        if let Err(e) = self.check_inputs_and_outputs(&layer_input_datas, &layer_ouput_datas) {
             return Err(e);
         }
 
-        if let Err(e) =  self.forward_with_tensors(&layer_input_datas, &layer_ouput_datas){
+        if let Err(e) = self.forward_with_tensors(&layer_input_datas, &layer_ouput_datas) {
             return Err(e);
         }
 
@@ -51,7 +55,6 @@ where
         inputs: &Vec<SharedTensor<A>>,
         outputs: &Vec<SharedTensor<A>>,
     ) -> Result<(), LayerError> {
-
         let batch_size = inputs.len();
         for i in 0..batch_size {
             let input_data = &inputs[i];
@@ -87,9 +90,9 @@ mod test_abrastra_layer {
     use crate::data::Tensor;
     use crate::layer::LayerRegisterer;
     use ndarray::ArrayD;
-    use ndarray_rand::RandomExt;
-    use ndarray_rand::rand_distr::Uniform;
     use ndarray::IxDyn;
+    use ndarray_rand::rand_distr::Uniform;
+    use ndarray_rand::RandomExt;
 
     #[test]
     fn test_relu_forward() {
@@ -109,31 +112,33 @@ mod test_abrastra_layer {
             .unwrap();
     }
     #[test]
-    fn test_create_layer_find(){
+    fn test_create_layer_find() {
         // 检查nn.ReLu 算子是否注册
-        let layer_type ="nn.ReLu".to_string();
+        let layer_type = "nn.ReLu".to_string();
         assert!(LayerRegisterer::check_operator_registration(&layer_type));
     }
 
     #[test_log::test]
-    fn test_create_layer_reluforward(){
+    fn test_create_layer_reluforward() {
         use crate::layer::LayerRegisterer;
         use crate::runtime::RuntimeOperator;
-        use std::rc::Rc;
-        use std::cell::RefCell;
         use log::info;
+        use std::cell::RefCell;
+        use std::rc::Rc;
         let mut runtime_operator = RuntimeOperator::<f32>::new();
         runtime_operator.type_name = "nn.ReLu".to_string();
         let runtime_operator = Rc::new(RefCell::new(runtime_operator));
         let relu_layer = LayerRegisterer::create_layer(&runtime_operator);
-        
+
         let mut input_data = Tensor::<f32>::new(&[3, 4, 4]);
         input_data.data = ArrayD::random(IxDyn(&[3, 4, 4]), Uniform::new(-5., 5.0));
-        
+
         info!("{:?}", input_data);
-        let input_data =vec![ Rc::new(RefCell::new(input_data))];
+        let input_data = vec![Rc::new(RefCell::new(input_data))];
         let out_data = input_data.clone();
-        relu_layer.forward_with_tensors(&input_data, &out_data).unwrap();
+        relu_layer
+            .forward_with_tensors(&input_data, &out_data)
+            .unwrap();
         info!("{:?}", out_data);
-    } 
+    }
 }
