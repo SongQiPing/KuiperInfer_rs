@@ -38,23 +38,25 @@ where
     A: From<f32>,
     f32: From<A>,
 {
-    fn forward(&self) -> Result<(), crate::layer::abstract_layer::layer::LayerError> {
+    fn forward(&self) -> Result<(), LayerError> {
         let layer_input_datas = self.runtime_operator.prepare_input_tensor();
         let layer_ouput_datas = self.runtime_operator.prepare_output_tensor();
 
-        self.forward_with_tensors(&layer_input_datas, &layer_ouput_datas)
-            .unwrap();
+        if let Err(e) =  self.check_inputs_and_outputs(&layer_input_datas, &layer_ouput_datas){
+            return Err(e);
+        }
 
+        if let Err(e) =  self.forward_with_tensors(&layer_input_datas, &layer_ouput_datas){
+            return Err(e);
+        }
         Ok(())
     }
     fn forward_with_tensors(
         &self,
         inputs: &Vec<SharedTensor<A>>,
         outputs: &Vec<SharedTensor<A>>,
-    ) -> Result<(), crate::layer::abstract_layer::layer::LayerError> {
-        if let Err(e) = self.check_inputs_and_outputs(inputs, outputs) {
-            return Err(e);
-        }
+    ) -> Result<(), LayerError> {
+
         let batch_size = inputs.len();
         for i in 0..batch_size {
             let input_data = &inputs[i];
