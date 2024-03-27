@@ -28,6 +28,7 @@ pub enum LayerError {
     InferFailedInputOutSizeMatchError,
     InferFailedOutputSizeError,
     InferFailedStrideParameterError,
+    ParameterMissingStrideError,
 }
 pub trait Layer<A>
 where
@@ -169,11 +170,11 @@ impl<A> WeightData<A>
 where
     A: Clone + Zero,
 {
-    fn new() -> Self {
-        WeightData {
-            weights: Vec::new(),
-        }
-    }
+    // fn new() -> Self {
+    //     WeightData {
+    //         weights: Vec::new(),
+    //     }
+    // }
 }
 impl<A> ParamDataGetterSetter<A> for WeightData<A>
 where

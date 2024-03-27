@@ -35,13 +35,10 @@ where
 
     pub fn rows(&self) -> usize {
         let ndim = self.ndim();
-        if ndim > 1 {
-            self.raw_shapes[ndim - 2]
-        } else if ndim == 1 {
-            1
-        } else {
-            // Handle the case when n is 0 or negative
-            panic!("Invalid state: ndim() returned 0, which is not allowed.");
+        match ndim {
+            n if n > 1 => self.raw_shapes[n - 2],
+            1 => 1,
+            _ => panic!("Invalid state: ndim() returned 0, which is not allowed."),
         }
     }
 
@@ -56,9 +53,7 @@ where
     }
     pub fn channels(&self) -> usize {
         let ndim = self.ndim();
-        if ndim > 2 {
-            self.raw_shapes[0]
-        } else if ndim == 2 {
+        if ndim >= 2 {
             self.raw_shapes[0]
         } else if ndim == 1 {
             1
@@ -115,9 +110,6 @@ where
         self.data.view().slice_move(info)
     }
 }
-
-// extern crate kuiper_infer;
-
 #[cfg(test)]
 mod test_tensor {
     use super::*;

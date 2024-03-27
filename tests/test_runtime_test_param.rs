@@ -177,10 +177,7 @@ mod test_parameter {
         use kuiper_infer::pnnx::Parameter;
         let param = Parameter::parse_from_string("xsdfs".to_string());
 
-        param_eq(
-            &param,
-            &Parameter::String(String::from("xsdfs")),
-        );
+        param_eq(&param, &Parameter::String(String::from("xsdfs")));
     }
     use regex::Regex;
 
@@ -198,7 +195,7 @@ mod test_parameter {
             println!("The input is a valid i32 vector.");
         } else {
             println!("The input is not a valid i32 vector.");
-            assert!(false);
+            panic!();
         }
     }
 }
@@ -261,7 +258,6 @@ mod test_graph {
     fn test_load_shape() {
         use kuiper_infer::pnnx::Graph;
 
-
         let mut graph = Graph::new();
 
         let operand1 = graph.new_operand("0".to_string());
@@ -305,20 +301,19 @@ mod test_graph {
     }
 
     #[test]
-    fn test_graph_graph_opos_from_test_pnnx(){
+    fn test_graph_graph_opos_from_test_pnnx() {
         // 输出运算符号
         use kuiper_infer::pnnx::Graph;
         let param_path = "model_file/test_linear.pnnx.param";
         let bin_path = "model_file/test_linear.pnnx.bin";
         let graph = Graph::from_pnnx(param_path, bin_path);
 
-        for operator in graph.operators{
+        for operator in graph.operators {
             println!("operator name: {}", &operator.as_ref().borrow().name);
         }
-
     }
     #[test]
-    fn test_graph_graph_operand_from_test_pnnx(){
+    fn test_graph_graph_operand_from_test_pnnx() {
         // 输出运算符号
         use kuiper_infer::pnnx::Graph;
 
@@ -326,12 +321,12 @@ mod test_graph {
         let bin_path = "model_file/test_linear.pnnx.bin";
         let graph = Graph::from_pnnx(param_path, bin_path);
 
-        for operator in &graph.operators{
-            println!("operator name: {}", &operator.as_ref().borrow().name);  
-    
+        for operator in &graph.operators {
+            println!("operator name: {}", &operator.as_ref().borrow().name);
+
             let operator_ref = operator.as_ref().borrow();
 
-            println!("OP Inputs: ");    
+            println!("OP Inputs: ");
             for input_operand in &operator_ref.inputs {
                 println!(
                     "Input name: {}, shape:{:?}",
@@ -340,7 +335,7 @@ mod test_graph {
                 );
             }
 
-            println!("OP Outputs: ");    
+            println!("OP Outputs: ");
             for output_operand in &operator_ref.outputs {
                 println!(
                     "Input name: {}, shape:{:?}",
@@ -350,25 +345,23 @@ mod test_graph {
             }
             println!("------------------------------")
         }
-
     }
 
-    #[test] 
-    fn test_graph_graph_operands_and_params_from_test_pnnx(){
+    #[test]
+    fn test_graph_graph_operands_and_params_from_test_pnnx() {
         // 输出运算符号
         use kuiper_infer::pnnx::Graph;
 
         let param_path = "model_file/test_linear.pnnx.param";
         let bin_path = "model_file/test_linear.pnnx.bin";
         let graph = Graph::from_pnnx(param_path, bin_path);
-        for operator in &graph.operators{
-           
-            if &operator.as_ref().borrow().name != "linear"{
+        for operator in &graph.operators {
+            if &operator.as_ref().borrow().name != "linear" {
                 continue;
             }
             let operator_ref = operator.as_ref().borrow();
-            println!("operator name: {}", &operator.as_ref().borrow().name);  
-            println!("OP Inputs: ");    
+            println!("operator name: {}", &operator.as_ref().borrow().name);
+            println!("OP Inputs: ");
             for input_operand in &operator_ref.inputs {
                 println!(
                     "Input name: {}, shape:{:?}",
@@ -377,7 +370,7 @@ mod test_graph {
                 );
             }
 
-            println!("OP Outputs: ");    
+            println!("OP Outputs: ");
             for output_operand in &operator_ref.outputs {
                 println!(
                     "Input name: {}, shape:{:?}",
@@ -386,13 +379,11 @@ mod test_graph {
                 );
             }
             println!("Params");
-            
-            for (param_name,param) in &operator_ref.params{
-                println!("param_name:{}, param:{:?}", param_name, param);
 
+            for (param_name, param) in &operator_ref.params {
+                println!("param_name:{}, param:{:?}", param_name, param);
             }
             println!("------------------------------")
         }
-
     }
 }

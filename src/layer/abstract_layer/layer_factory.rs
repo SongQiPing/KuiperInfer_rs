@@ -1,7 +1,7 @@
 use crate::layer::Layer;
 use crate::runtime::{RuntimeOperator, SharedRuntimeOperator};
 use lazy_static::lazy_static;
-use num_traits::Zero;
+use num_traits::{Bounded, Zero};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::Neg;
@@ -17,18 +17,23 @@ pub struct LayerRegistry<A> {
 }
 impl<A> LayerRegistry<A>
 where
-    A: Clone + Zero + PartialOrd + Neg + 'static,
+    A: Clone + Zero + PartialOrd + Neg + 'static + Bounded,
     f32: From<A>,
     A: From<f32>,
 {
     fn new() -> Self {
         let registry = HashMap::new();
-        let mut layer_registry = LayerRegistry { registry: registry };
+        let mut layer_registry = LayerRegistry { registry };
         //注册nn.ReLu 算子
         use crate::layer::details::relu::ReLULayer;
         layer_registry.register_creator("nn.ReLu".to_string(), ReLULayer::<A>::get_instance);
         use crate::layer::details::sigmoid::SigmoidLayer;
         layer_registry.register_creator("nn.Sigmoid".to_string(), SigmoidLayer::<A>::get_instance);
+        use crate::layer::details::maxpooling::MaxPoolingLayer;
+        layer_registry.register_creator(
+            "nn.MaxPool2d".to_string(),
+            MaxPoolingLayer::<A>::get_instance,
+        );
         layer_registry
     }
     pub fn register_creator(&mut self, layer_type: String, creator: Creator<A>) {
@@ -107,10 +112,7 @@ impl LayerRegisterer {
     /// ```
     pub fn check_operator_registration(layer_type: &String) -> bool {
         let registry = &mut LayerRegisterer::get_registry().lock().unwrap();
-        match registry.get(layer_type) {
-            Some(_) => true,
-            None => false,
-        }
+        registry.get(layer_type).is_some()
     }
 }
 
