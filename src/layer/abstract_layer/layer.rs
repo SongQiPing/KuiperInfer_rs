@@ -425,6 +425,7 @@ pub trait ParamDataGetterSetter<A> {
     fn get(&self) -> &SharedTensor<A>;
 }
 
+#[derive(Debug)]
 pub struct WeightData<A>
 where
     A: Clone + Zero,
