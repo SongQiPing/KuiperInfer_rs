@@ -1,7 +1,9 @@
-pub mod  store_zip;
+pub mod parameter;
+pub use parameter::Parameter;
+
+pub mod store_zip;
 
 pub mod graph;
-pub use graph::Parameter;
 pub use graph::Operand;
 pub use graph::SharedOperand;
 

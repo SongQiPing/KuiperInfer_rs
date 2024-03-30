@@ -3,6 +3,7 @@ use std::vec::Vec;
 use crate::runtime::RuntimeDataType;
 use std::mem;
 
+#[derive(Debug)]
 pub struct RuntimeAttribute {
     pub weight_data: Vec<u8>,   // 节点中的权重参数
     pub shape: Vec<i32>,        // 节点中的形状信息
@@ -12,7 +13,7 @@ pub struct RuntimeAttribute {
 impl RuntimeAttribute {
     pub fn get<T>(&mut self, need_clear_weight: bool) -> Vec<T>
     where
-        T: Copy,
+        T: Copy + std::fmt::Debug,
     {
         // 检查节点属性中的权重类型
         assert!(!self.weight_data.is_empty());
@@ -38,9 +39,8 @@ impl RuntimeAttribute {
 
         weights
     }
-    pub fn clear_weight(& mut self){
+    pub fn clear_weight(&mut self) {
         self.weight_data.clear();
-
     }
 }
 
@@ -68,7 +68,7 @@ mod test_runtime_attribute {
             dtype: RuntimeDataType::TypeFloat32,
         };
 
-                let bytes: Vec<u8> = runtime_attr.get(false);
+        let bytes: Vec<u8> = runtime_attr.get(false);
         assert_eq!(bytes, vec![1, 2, 3, 4]);
     }
 

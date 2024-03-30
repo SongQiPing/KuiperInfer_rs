@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use ndarray::LinalgScalar;
+use num_traits::Bounded;
 use num_traits::Zero;
 
 use crate::data::SharedTensor;
@@ -16,7 +18,14 @@ pub struct ReLULayer<A> {
 
 impl<A> ReLULayer<A>
 where
-    A: Clone + Zero + PartialOrd + 'static,
+    A: Clone
+        + Zero
+        + LinalgScalar
+        + std::ops::Neg
+        + PartialOrd
+        + 'static
+        + num_traits::Bounded
+        + std::fmt::Debug,
 {
     fn new(runtime_operator: RuntimeOperatorData<A>) -> Self {
         ReLULayer {
@@ -34,7 +43,7 @@ where
 }
 impl<A> Layer<A> for ReLULayer<A>
 where
-    A: Clone + Zero + PartialOrd,
+    A: Clone + Zero + std::ops::Neg + 'static + PartialOrd + Bounded + std::fmt::Debug,
 {
     fn forward(&self) -> Result<(), LayerError> {
         let layer_input_datas = self.runtime_operator.prepare_input_tensor();

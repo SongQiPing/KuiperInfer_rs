@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use num_traits::Bounded;
 use num_traits::Zero;
 
 use crate::data::SharedTensor;
@@ -16,7 +17,7 @@ pub struct SigmoidLayer<A> {
 
 impl<A> SigmoidLayer<A>
 where
-    A: Clone + Zero + std::ops::Neg + 'static,
+    A: Clone + Zero + std::ops::Neg + 'static + PartialOrd + Bounded + std::fmt::Debug,
     f32: From<A>,
     A: From<f32>,
 {
@@ -38,7 +39,7 @@ use std::convert::From;
 
 impl<A> Layer<A> for SigmoidLayer<A>
 where
-    A: Clone + Zero + std::ops::Neg,
+    A: Clone + Zero + std::ops::Neg + 'static + PartialOrd + Bounded + std::fmt::Debug,
     A: From<f32>,
     f32: From<A>,
 {

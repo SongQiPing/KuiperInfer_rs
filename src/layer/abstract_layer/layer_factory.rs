@@ -1,10 +1,11 @@
 use crate::layer::Layer;
 use crate::runtime::{RuntimeOperator, SharedRuntimeOperator};
 use lazy_static::lazy_static;
-use num_traits::{Bounded, Zero};
+use ndarray::LinalgScalar;
+use num_traits::Bounded;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::ops::Neg;
+
 use std::rc::Rc;
 use std::sync::Mutex;
 
@@ -17,7 +18,7 @@ pub struct LayerRegistry<A> {
 }
 impl<A> LayerRegistry<A>
 where
-    A: Clone + Zero + PartialOrd + Neg + 'static + Bounded,
+    A: Clone + LinalgScalar + PartialOrd + Bounded + std::ops::Neg + std::fmt::Debug,
     f32: From<A>,
     A: From<f32>,
 {
@@ -34,6 +35,9 @@ where
             "nn.MaxPool2d".to_string(),
             MaxPoolingLayer::<A>::get_instance,
         );
+        use crate::layer::details::convolution::ConvolutionLayer;
+        layer_registry
+            .register_creator("nn.Conv2d".to_string(), ConvolutionLayer::<A>::get_instance);
         layer_registry
     }
     pub fn register_creator(&mut self, layer_type: String, creator: Creator<A>) {

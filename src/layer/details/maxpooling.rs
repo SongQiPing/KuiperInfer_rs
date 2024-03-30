@@ -1,12 +1,11 @@
-use std::cell::RefCell;
-use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::data::SharedTensor;
 use crate::layer::abstract_layer::layer::*;
 use crate::layer::abstract_layer::RuntimeOperatorData;
 use crate::layer::Layer;
-use crate::pnnx::Parameter;
+use crate::layer::ParameterData;
+
 use log::error;
 use log::info;
 use num_traits::Bounded;
@@ -28,49 +27,30 @@ pub struct MaxPoolingLayer<A> {
 
 impl<A> MaxPoolingLayer<A>
 where
-    A: Clone + Zero + PartialOrd + std::ops::Neg + 'static + Bounded,
+    A: Clone + Zero + PartialOrd + std::ops::Neg + Bounded + std::fmt::Debug + 'static,
     f32: From<A>,
     A: From<f32>,
 {
-    fn new(runtime_operator: RuntimeOperatorData<A>) -> Self {
+    fn _new(
+        padding_h: usize,
+        padding_w: usize,
+        pooling_size_h: usize,
+        pooling_size_w: usize,
+        stride_h: usize,
+        stride_w: usize,
+    ) -> Self {
         MaxPoolingLayer {
-            runtime_operator,
+            runtime_operator: RuntimeOperatorData::new(),
             layer_name: "nn.MaxPool2d".to_string(),
-            padding_h: 0,
-            padding_w: 0,
-            pooling_size_h: 0,
-            pooling_size_w: 0,
-            stride_h: 1,
-            stride_w: 1,
+            padding_h,
+            padding_w,
+            pooling_size_h,
+            pooling_size_w,
+            stride_h,
+            stride_w,
         }
     }
 
-    fn get_vec_params(
-        params_map: &HashMap<String, Rc<RefCell<Parameter>>>,
-        params_name: &str,
-    ) -> Result<Vec<i32>, LayerError> {
-        match params_map.get(&params_name.to_string()) {
-            Some(params) => {
-                let borrowed_params = params.borrow();
-                match borrowed_params.clone() {
-                    Parameter::IntList(stride) => {
-                        return Ok(stride);
-                    }
-
-                    Parameter::None => {
-                        return Err(LayerError::ParameterMissingStrideError);
-                    }
-                    _ => {
-                        return Err(LayerError::ParameterMissingStrideError);
-                    }
-                }
-            }
-            None => {
-                error!("Can not find the {}", params_name);
-                return Err(LayerError::ParameterMissingStrideError);
-            }
-        }
-    }
     fn calculate_maxpool_window_value(
         &self,
         inputs: &SharedTensor<A>,
@@ -113,11 +93,11 @@ where
     ) -> Result<Rc<dyn Layer<A>>, LayerError> {
         let params_map = &runtime_operator.as_ref().borrow().params;
         //获取stride的参数
-        let stride = Self::get_vec_params(params_map, &"stride")?;
+        let stride = ParameterData::get_stride(params_map)?;
         // 获取padding的参数
-        let padding = Self::get_vec_params(params_map, &"padding")?;
+        let padding = ParameterData::get_padding(params_map)?;
         // 获取kernel_size
-        let kernel_size = Self::get_vec_params(params_map, &"kernel_size")?;
+        let kernel_size = ParameterData::get_kernel_size(params_map)?;
 
         let maxpool_layer = MaxPoolingLayer {
             runtime_operator: RuntimeOperatorData::new_from(runtime_operator.clone()),
@@ -200,7 +180,7 @@ use std::convert::From;
 
 impl<A> Layer<A> for MaxPoolingLayer<A>
 where
-    A: Clone + Zero + std::ops::Neg + 'static + PartialOrd + Bounded,
+    A: Clone + Zero + std::ops::Neg + 'static + PartialOrd + Bounded + std::fmt::Debug,
     A: From<f32>,
     f32: From<A>,
 {
@@ -259,6 +239,8 @@ mod test_sigmoid_layer {
     use std::cell::RefCell;
     use std::rc::Rc;
 
+    use super::MaxPoolingLayer;
+
     fn get_test_maxpooling_operator() -> SharedRuntimeOperator<f32> {
         let mut maxpooling_operator = RuntimeOperator::<f32>::new();
         maxpooling_operator.type_name = "nn.MaxPool2d".to_string();
@@ -276,6 +258,10 @@ mod test_sigmoid_layer {
         );
 
         Rc::new(RefCell::new(maxpooling_operator))
+    }
+    #[test]
+    fn test_new_maxpooling() {
+        let _maxpooling = MaxPoolingLayer::<f32>::_new(0, 0, 2, 2, 2, 2);
     }
     #[test]
     fn test_create_layer_find() {

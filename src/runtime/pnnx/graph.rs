@@ -1,98 +1,6 @@
-use regex::Regex;
+use super::{store_zip, Parameter};
 use std::collections::HashMap;
-use super::store_zip as store_zip;
 use store_zip::StoreZipReader;
-
-
-
-#[derive(Clone, Debug)]
-pub enum Parameter {
-    None,
-    Bool(bool),
-    Int(i64),
-    Float(f64),
-    String(String),
-    IntList(Vec<i32>),
-    FloatList(Vec<f32>),
-    StringList(Vec<String>),
-}
-fn vec_i64_is_ok(value: &String) -> bool {
-    let regex = Regex::new(r"^\((-?\d+(,\s*-?\d+)*)?\)$").unwrap();
-
-    regex.is_match(value)
-}
-fn vec_f64_is_ok(value: &String) -> bool {
-    let regex = Regex::new(r"^\((-?\d+(\.\d+)?(,\s*-?\d+(\.\d+)?)*)?\)$").unwrap();
-
-    regex.is_match(value)
-}
-
-impl Parameter {
-    pub fn parse_from_string(value: String) -> Parameter {
-        if value == "None" || value == "()" || value == "[]" {
-            return Parameter::None;
-        } else if value == "True" || value == "False" {
-            return Parameter::Bool(value == "True");
-        } else if value.parse::<i64>().is_ok() {
-            return Parameter::Int(value.parse().unwrap());
-        } else if value.parse::<f64>().is_ok() {
-            // 如果可以解析为浮点数，则返回 Float 类型的 Parameter
-            return Parameter::Float(value.parse().unwrap());
-        } else if vec_i64_is_ok(&value) {
-            // 如果以 "[" 开头且以 "]" 结尾，则尝试解析为 IntList 类型的 Parameter
-            let inner_values: Vec<i32> = value[1..value.len() - 1]
-                .split(',')
-                .filter_map(|s| s.trim().parse().ok())
-                .collect();
-
-            return Parameter::IntList(inner_values);
-        } else if vec_f64_is_ok(&value) {
-            // 如果以 "[" 开头且以 "]" 结尾，则尝试解析为 FloatList 类型的 Parameter
-            let inner_values: Vec<f32> = value[1..value.len() - 1]
-                .split(',')
-                .filter_map(|s| s.trim().parse().ok())
-                .collect();
-
-            return Parameter::FloatList(inner_values);
-        } else if value.starts_with("(") && value.ends_with(")") {
-            let inner_values: Vec<String> = value[1..value.len() - 1]
-                .split(',')
-                .map(|s| s.trim().to_string())
-                .collect();
-            return Parameter::StringList(inner_values);
-        } else {
-            let inner_values = value.to_string();
-
-            return Parameter::String(inner_values);
-        }
-    }
-    pub fn fmt(&self) -> String {
-        match self {
-            Parameter::None => "None".to_string(),
-            Parameter::Bool(b) => {
-                if *b {
-                    "True".to_string()
-                } else {
-                    "False".to_string()
-                }
-            }
-            Parameter::Int(i) => i.to_string(),
-            Parameter::Float(f) => f.to_string(),
-            Parameter::String(s) => s.to_string(),
-            Parameter::IntList(list) => {
-                let inner: Vec<String> = list.iter().map(|&i| i.to_string()).collect();
-                format!("[{}]", inner.join(", "))
-            }
-            Parameter::FloatList(list) => {
-                let inner: Vec<String> = list.iter().map(|&f| f.to_string()).collect();
-                format!("[{}]", inner.join(", "))
-            }
-            Parameter::StringList(list) => {
-                format!("[{}]", list.join(", "))
-            }
-        }
-    }
-}
 
 pub struct Attribute {
     pub type_id: i32,
@@ -176,7 +84,7 @@ fn type_to_elemsize(type_: i32) -> usize {
     }
 }
 
-pub type SharedOperator =  Rc<RefCell<Operator>>;
+pub type SharedOperator = Rc<RefCell<Operator>>;
 
 pub struct Operator {
     pub inputs: Vec<SharedOperand>,
@@ -278,7 +186,7 @@ impl Operand {
     pub fn add_consumer(&mut self, consumer: SharedOperator) {
         self.consumers.push(consumer);
     }
-    pub fn set_shape(&mut self, shape: Vec<usize >) {
+    pub fn set_shape(&mut self, shape: Vec<usize>) {
         self.shape = shape;
     }
     pub fn get_shape(&self) -> &Vec<usize> {
@@ -393,7 +301,7 @@ impl Graph {
         parmas_value: &String,
         store_zip_reader: &mut StoreZipReader,
     ) {
-        // get data type id 
+        // get data type id
         let data_type = parmas_value
             .split(')')
             .last()
@@ -412,17 +320,17 @@ impl Graph {
             size *= i as usize;
         }
         let byte_size = size * type_to_elemsize(data_type_id);
-        
+
         // get filename
         let operator_name = op.as_ref().borrow().name.clone();
         let filename = operator_name + "." + &parmas_key;
-        
-        // get file size 
+
+        // get file size
         let file_size = store_zip_reader.get_file_size(&filename).unwrap();
         if file_size == 0 {
             return;
         }
-        if file_size != byte_size{
+        if file_size != byte_size {
             panic!("byte_size: {} != file_size :{}", byte_size, file_size);
         }
         let data = store_zip_reader.read_file(&filename);
@@ -432,7 +340,6 @@ impl Graph {
 
         attribute.set_type_id(data_type_id);
         attribute.set_data(data);
-
     }
     pub fn load(&mut self, param_path: &str, bin_path: &str) {
         // let mut param_buff = std::io::Cursor::new(param_path);

@@ -21,6 +21,15 @@ where
 
         Tensor { raw_shapes, data }
     }
+    pub fn from_ndarry(data: ArrayD<A>) -> Self {
+        Tensor {
+            raw_shapes: data.raw_dim(),
+            data: data,
+        }
+    }
+    pub fn shared_self(self) -> Rc<RefCell<Tensor<A>>> {
+        Rc::new(RefCell::new(self))
+    }
     // }
     // pub fn new_with_dimensions(dimensions: Vec<u32>) -> Tensor {
     //     let size: usize = dimensions.iter().map(|&x| x as usize).product();
@@ -53,9 +62,19 @@ where
     }
     pub fn channels(&self) -> usize {
         let ndim = self.ndim();
-        if ndim >= 2 {
-            self.raw_shapes[0]
-        } else if ndim == 1 {
+        if ndim >= 3 {
+            self.raw_shapes[ndim - 3]
+        } else if ndim >= 1 && ndim < 3 {
+            1
+        } else {
+            panic!("Invalid state: ndim() returned 0, which is not allowed.");
+        }
+    }
+    pub fn batch_size(&self) -> usize {
+        let ndim = self.ndim();
+        if ndim >= 4 {
+            self.raw_shapes[ndim - 4]
+        } else if ndim >= 1 && ndim < 4 {
             1
         } else {
             panic!("Invalid state: ndim() returned 0, which is not allowed.");

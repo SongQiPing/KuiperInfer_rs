@@ -1,4 +1,3 @@
-
 use num_traits::Zero;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -11,15 +10,14 @@ use super::RuntimeOperand;
 use super::RuntimeOperator;
 
 use super::RuntimeOperatorUtil;
-use super::SharedRuntimeOperator;
 use super::SharedRuntimeOperand;
+use super::SharedRuntimeOperator;
 
 use crate::pnnx::SharedOperand;
 pub enum GraphState {
     Complete,
     NeedBuild,
     NeedInit,
-
 }
 pub struct RuntimeGraph<A> {
     intput_name: String, //计算输入节点的名称
@@ -28,11 +26,11 @@ pub struct RuntimeGraph<A> {
     bin_path: String,    //计算图的权重文件
 
     operators: Vec<SharedRuntimeOperator<A>>,
-    operators_maps: HashMap<String, SharedRuntimeOperator<A>>,
-    topo_operators:Vec<SharedRuntimeOperator<A>>,
+    pub operators_maps: HashMap<String, SharedRuntimeOperator<A>>,
+    topo_operators: Vec<SharedRuntimeOperator<A>>,
 
     graph: Box<pnnx::Graph>,
-    graph_state :GraphState
+    graph_state: GraphState,
 }
 
 impl<A> RuntimeGraph<A>
@@ -48,8 +46,8 @@ where
             operators: Vec::new(),
             operators_maps: HashMap::new(),
             graph: Box::new(pnnx::Graph::new()),
-            graph_state:GraphState::NeedInit,
-            topo_operators:Vec::new()
+            graph_state: GraphState::NeedInit,
+            topo_operators: Vec::new(),
         }
     }
     pub fn set_bin_path(&mut self, bin_path: String) {
@@ -99,18 +97,26 @@ where
             self.init_graph_attrs(&operator.as_ref().borrow().attrs, &runtime_operator);
 
             // 初始化算子中的parameter
-            self.init_graph_params(& operator.as_ref().borrow().params, & runtime_operator);
+            self.init_graph_params(&operator.as_ref().borrow().params, &runtime_operator);
 
             self.operators.push(runtime_operator.clone());
-            self.operators_maps.insert(runtime_operator.as_ref().borrow().name.clone(), runtime_operator.clone());
-
+            self.operators_maps.insert(
+                runtime_operator.as_ref().borrow().name.clone(),
+                runtime_operator.clone(),
+            );
         }
         self.graph_state = GraphState::NeedBuild;
-
     }
-    pub fn init_graph_params(& self, param_map:& HashMap<String, pnnx::Parameter>, runtime_operator: &SharedRuntimeOperator<A>){
+    pub fn init_graph_params(
+        &self,
+        param_map: &HashMap<String, pnnx::Parameter>,
+        runtime_operator: &SharedRuntimeOperator<A>,
+    ) {
         for (key, val) in param_map.iter() {
-            runtime_operator.borrow_mut().params.insert(key.clone(), Rc::new(RefCell::new(val.clone())));
+            runtime_operator
+                .borrow_mut()
+                .params
+                .insert(key.clone(), Rc::new(RefCell::new(val.clone())));
         }
     }
 
@@ -121,18 +127,19 @@ where
     ) {
         for (key, val) in attribute_map.iter() {
             match val.type_id {
-                1  => {
+                1 => {
                     let runtime_attribute = RuntimeAttribute {
                         weight_data: val.data.clone(),
                         dtype: RuntimeDataType::TypeFloat32,
                         shape: val.shape.clone(),
                     };
-                    runtime_operator.borrow_mut().attribute.insert(key.clone(), Rc::new(RefCell::new(runtime_attribute)));
-                    
+                    runtime_operator
+                        .borrow_mut()
+                        .attribute
+                        .insert(key.clone(), Rc::new(RefCell::new(runtime_attribute)));
                 }
                 _ => {
                     panic!("Unknown attribute type");
-
                 }
             }
         }
@@ -165,12 +172,12 @@ where
         for input in inputs {
             let producer = &input.as_ref().borrow().producer;
             if let Some(producer) = producer {
-                let runtime_operand:SharedRuntimeOperand<A> =
+                let runtime_operand: SharedRuntimeOperand<A> =
                     Rc::new(RefCell::new(RuntimeOperand::<A>::new()));
                 runtime_operand.borrow_mut().name = producer.as_ref().borrow().name.clone();
                 runtime_operand.borrow_mut().shapes = input.as_ref().borrow().shape.clone();
             }
-            let runtime_operand:SharedRuntimeOperand<A> =
+            let runtime_operand: SharedRuntimeOperand<A> =
                 Rc::new(RefCell::new(RuntimeOperand::<A>::new()));
             runtime_operand.borrow_mut().name =
                 producer.as_ref().expect("REASON").borrow().name.clone();
@@ -199,65 +206,71 @@ where
         }
     }
 
-    pub fn build(& mut self, input_name:String , output_name:String){
-        if let GraphState::Complete = self.graph_state{
+    pub fn build(&mut self, input_name: String, output_name: String) {
+        if let GraphState::Complete = self.graph_state {
             println!("Model has been built already!");
         }
 
-        if let GraphState::NeedInit = self.graph_state{
+        if let GraphState::NeedInit = self.graph_state {
             self.init();
         }
 
-        //构建图关系 
-        for current_operator in &self.operators{
-            let output_names = & current_operator.as_ref().borrow().output_names.clone();
-            for output_name in output_names{
-                if self.operators_maps.contains_key(output_name){
+        //构建图关系
+        for current_operator in &self.operators {
+            let output_names = &current_operator.as_ref().borrow().output_names.clone();
+            for output_name in output_names {
+                if self.operators_maps.contains_key(output_name) {
                     let output_name_key = output_name.clone();
                     let next_operator_ref = self.operators_maps[output_name].clone();
 
-                    current_operator.as_ref().borrow_mut().output_operators.insert(output_name_key,next_operator_ref);
+                    current_operator
+                        .as_ref()
+                        .borrow_mut()
+                        .output_operators
+                        .insert(output_name_key, next_operator_ref);
                 }
             }
         }
         //初始化节点的输入和输出空间
-        RuntimeOperatorUtil::init_operator_input(& self.operators);
-        RuntimeOperatorUtil::init_operator_output(& self.graph.operators, & self.operators);
+        RuntimeOperatorUtil::init_operator_input(&self.operators);
+        RuntimeOperatorUtil::init_operator_output(&self.graph.operators, &self.operators);
 
-
-        // 构建拓扑顺序 
+        // 构建拓扑顺序
         self.topo_operators.clear();
-        for (_, operator) in & self.operators_maps{
-            if operator.borrow().type_name == "pnnx.Input".to_string() && !operator.borrow().has_forward{
-                Self::reverse_topo(operator, & mut self.topo_operators);
+        for (_, operator) in &self.operators_maps {
+            if operator.borrow().type_name == "pnnx.Input".to_string()
+                && !operator.borrow().has_forward
+            {
+                Self::reverse_topo(operator, &mut self.topo_operators);
             }
         }
         self.topo_operators.reverse();
-        assert_eq!(self.topo_operators.len(), self.operators.len(), "Build wrong topo queue");
+        assert_eq!(
+            self.topo_operators.len(),
+            self.operators.len(),
+            "Build wrong topo queue"
+        );
         self.graph_state = GraphState::Complete;
         self.intput_name = input_name;
         self.output_name = output_name;
-
-
     }
 
-    pub fn reverse_topo(root_op:& SharedRuntimeOperator<A>, topo_operators:& mut Vec<SharedRuntimeOperator<A>>){
-
-
+    pub fn reverse_topo(
+        root_op: &SharedRuntimeOperator<A>,
+        topo_operators: &mut Vec<SharedRuntimeOperator<A>>,
+    ) {
         root_op.borrow_mut().has_forward = true;
-        for (_, next_operator) in &root_op.borrow().output_operators{
-            if !next_operator.borrow().has_forward{
-                Self::reverse_topo(next_operator,  topo_operators);
+        for (_, next_operator) in &root_op.borrow().output_operators {
+            if !next_operator.borrow().has_forward {
+                Self::reverse_topo(next_operator, topo_operators);
             }
         }
         topo_operators.push(root_op.clone());
-
     }
-    pub fn get_topo_queues(& self) -> & Vec<SharedRuntimeOperator<A>>{
-        & self.topo_operators
+    pub fn get_topo_queues(&self) -> &Vec<SharedRuntimeOperator<A>> {
+        &self.topo_operators
     }
 }
-
 
 #[cfg(test)]
 mod test_runrime_graph {
@@ -291,7 +304,6 @@ mod test_runrime_graph {
         let mut runtime_grpah: RuntimeGraph<f32> = RuntimeGraph::<f32>::new(param_path, bin_path);
         runtime_grpah.init();
     }
-
 }
 
 #[cfg(test)]
@@ -299,55 +311,64 @@ mod test_graph_topo {
     use super::*;
 
     #[test]
-    fn test_topo(){
+    fn test_topo() {
         let param_path = "model_file/resnet18_batch1.param".to_string();
         let bin_path = "model_file/resnet18_batch1.pnnx.bin".to_string();
         let mut runtime_grpah: RuntimeGraph<f32> = RuntimeGraph::<f32>::new(param_path, bin_path);
         runtime_grpah.init();
         runtime_grpah.build("pnnx_input_0".to_string(), "pnnx_output_0".to_string());
-        let topo_queues =  runtime_grpah.get_topo_queues();
+        let topo_queues = runtime_grpah.get_topo_queues();
 
         let mut index = 0;
-        for operator in topo_queues{
-            println!("Index:{}, Type:{}, Name:{}", index, &operator.borrow().type_name, &operator.borrow().name);
+        for operator in topo_queues {
+            println!(
+                "Index:{}, Type:{}, Name:{}",
+                index,
+                &operator.borrow().type_name,
+                &operator.borrow().name
+            );
             index += 1;
-
         }
     }
     #[test]
-    fn test_build_output_ops(){
+    fn test_build_output_ops() {
         let param_path = "model_file/simple_ops.pnnx.param".to_string();
         let bin_path = "model_file/simple_ops.pnnx.bin".to_string();
         let mut runtime_grpah: RuntimeGraph<f32> = RuntimeGraph::<f32>::new(param_path, bin_path);
         runtime_grpah.init();
         runtime_grpah.build("pnnx_input_0".to_string(), "pnnx_output_0".to_string());
-        let topo_queues =  runtime_grpah.get_topo_queues();
+        let topo_queues = runtime_grpah.get_topo_queues();
 
         let mut index = 0;
-        for operator in topo_queues{
-            println!("Index:{}, Type:{}, Name:{}", index, &operator.borrow().type_name, &operator.borrow().name);
+        for operator in topo_queues {
+            println!(
+                "Index:{}, Type:{}, Name:{}",
+                index,
+                &operator.borrow().type_name,
+                &operator.borrow().name
+            );
             index += 1;
         }
     }
     #[test]
-    fn test_build_output_ops2(){
+    fn test_build_output_ops2() {
         let param_path = "model_file/simple_ops.pnnx.param".to_string();
         let bin_path = "model_file/simple_ops.pnnx.bin".to_string();
         let mut runtime_grpah: RuntimeGraph<f32> = RuntimeGraph::<f32>::new(param_path, bin_path);
         runtime_grpah.init();
         runtime_grpah.build("pnnx_input_0".to_string(), "pnnx_output_0".to_string());
-        let topo_queues =  runtime_grpah.get_topo_queues();
+        let topo_queues = runtime_grpah.get_topo_queues();
 
-        for operator in topo_queues{
+        for operator in topo_queues {
             println!("operator name:{}", operator.borrow().name);
-            for (output_operator_name, _) in & operator.borrow().output_operators{
+            for (output_operator_name, _) in &operator.borrow().output_operators {
                 println!("output: {}", output_operator_name);
             }
             println!("-------------------------");
         }
     }
     #[test]
-    fn test_build_status(){
+    fn test_build_status() {
         let param_path = "model_file/simple_ops.pnnx.param".to_string();
         let bin_path = "model_file/simple_ops.pnnx.bin".to_string();
         let mut runtime_grpah: RuntimeGraph<f32> = RuntimeGraph::<f32>::new(param_path, bin_path);
@@ -358,7 +379,7 @@ mod test_graph_topo {
         assert!(matches!(runtime_grpah.graph_state, GraphState::Complete));
     }
     #[test]
-    fn test_build_output_tensors(){
+    fn test_build_output_tensors() {
         let param_path = "model_file/simple_ops2.pnnx.param".to_string();
         let bin_path = "model_file/simple_ops2.pnnx.bin".to_string();
         let mut runtime_grpah: RuntimeGraph<f32> = RuntimeGraph::<f32>::new(param_path, bin_path);
@@ -369,23 +390,21 @@ mod test_graph_topo {
         assert!(matches!(runtime_grpah.graph_state, GraphState::Complete));
 
         let operators = &runtime_grpah.operators;
-        for operator in operators{
+        for operator in operators {
             println!("name:{}", operator.borrow().name);
-            
+
             let operands = &operator.borrow().output_operands;
             match operands {
-                Some(operand_list)=>{
+                Some(operand_list) => {
                     let batch_size = operand_list.borrow().datas.len();
                     println!("batch:{}", batch_size);
-                    for tensor_index in 0..batch_size{
-                        let data = & operand_list.borrow().datas[tensor_index];
+                    for tensor_index in 0..batch_size {
+                        let data = &operand_list.borrow().datas[tensor_index];
                         println!("shape:{:?}", data.borrow().shapes());
-
                     }
                 }
                 None => {}
             }
         }
     }
-
 }
