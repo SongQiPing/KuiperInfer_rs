@@ -44,6 +44,8 @@ pub enum LayerError {
     ParameterMissingPaddingModeError,
     AttrMissingWeightError,
     AttrMissingBiasError,
+
+    ParameterMissingExpr,
 }
 pub trait Layer<A>
 where
@@ -368,6 +370,7 @@ pub trait RuntimeOperatorGetterSetter<A> {
     fn prepare_input_tensor(&self) -> Vec<SharedTensor<A>>;
     fn prepare_output_tensor(&self) -> Vec<SharedTensor<A>>;
 }
+#[derive(Clone)]
 pub struct RuntimeOperatorData<A> {
     runtime_operator: Option<SharedRuntimeOperator<A>>,
 }

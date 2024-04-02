@@ -13,7 +13,11 @@ use super::RuntimeOperatorUtil;
 use super::SharedRuntimeOperand;
 use super::SharedRuntimeOperator;
 
+use crate::data::SharedTensor;
+use crate::layer::Layer;
+use crate::layer::LayerRegisterer;
 use crate::pnnx::SharedOperand;
+#[derive(Debug)]
 pub enum GraphState {
     Complete,
     NeedBuild,
@@ -205,16 +209,10 @@ where
                 .push(runtime_operand.clone());
         }
     }
-
-    pub fn build(&mut self, input_name: String, output_name: String) {
-        if let GraphState::Complete = self.graph_state {
-            println!("Model has been built already!");
-        }
-
-        if let GraphState::NeedInit = self.graph_state {
-            self.init();
-        }
-
+    // fn create_layer(op: SharedRuntimeOperator<A>) {
+    //     // let layer: Rc<dyn Layer<f32>> = LayerRegisterer::create_layer(&op);
+    // }
+    fn create_node_relation(&self) {
         //构建图关系
         for current_operator in &self.operators {
             let output_names = &current_operator.as_ref().borrow().output_names.clone();
@@ -230,7 +228,24 @@ where
                         .insert(output_name_key, next_operator_ref);
                 }
             }
+            // 除了输入输出节点，都创建layer
+            if current_operator.as_ref().borrow().type_name != "pnnx.Input".to_string()
+                && current_operator.as_ref().borrow().type_name != "pnnx.Output".to_string()
+            {
+                //创建层
+            }
         }
+    }
+    pub fn build(&mut self, input_name: String, output_name: String) {
+        if let GraphState::Complete = self.graph_state {
+            println!("Model has been built already!");
+        }
+
+        if let GraphState::NeedInit = self.graph_state {
+            self.init();
+        }
+        self.create_node_relation();
+
         //初始化节点的输入和输出空间
         RuntimeOperatorUtil::init_operator_input(&self.operators);
         RuntimeOperatorUtil::init_operator_output(&self.graph.operators, &self.operators);
@@ -270,6 +285,63 @@ where
     pub fn get_topo_queues(&self) -> &Vec<SharedRuntimeOperator<A>> {
         &self.topo_operators
     }
+    // fn ProbeNextLayer(
+    //     current_op: SharedRuntimeOperator<A>,
+    //     layer_ouput_datas: &Vec<SharedTensor<A>>,
+    // ) {
+    //     //当前节点的后续节点 next_ops
+    //     let next_ops = current_op.as_ref().borrow().output_operators;
+    //     // 对所有后继节点进行遍历
+    //     for (_, next_rt_operator) in next_ops {
+    //         // 得到后继节点的输入next_input_operands
+    //         let next_input_operands = next_rt_operator.as_ref().borrow().input_operands;
+
+    //         if let Some(input_operand) = next_input_operands.get(&current_op.as_ref().borrow().name)
+    //         {
+    //             let next_input_datas = &input_operand.borrow().datas;
+    //             assert_eq!(next_input_datas.len(), layer_ouput_datas.len());
+    //             for i in 0..next_input_datas.len() {
+    //                 next_input_datas[i] = layer_ouput_datas[i];
+    //             }
+    //         }
+    //     }
+    // }
+    // pub fn forward(&self, inputs: &Vec<SharedTensor<A>>) -> SharedTensor<A> {
+    //     assert!(
+    //         matches!(self.graph_state, GraphState::Complete),
+    //         "Graph status error, current state is {:?}",
+    //         self.graph_state
+    //     );
+    //     assert_eq!(
+    //         self.topo_operators.len(),
+    //         self.operators.len(),
+    //         "Build wrong topo queue"
+    //     );
+    //     for op in self.topo_operators {
+    //         op.borrow_mut().has_forward = false;
+    //     }
+
+    //     for current_op in self.topo_operators {
+    //         if current_op.as_ref().borrow().type_name == "pnnx.Input" {
+    //             current_op.borrow_mut().has_forward = true;
+    //             Self::ProbeNextLayer(current_op, &inputs);
+    //         } else if current_op.as_ref().borrow().type_name == "pnnx.Output" {
+    //             current_op.borrow_mut().has_forward = true;
+    //             assert!(current_op.as_ref().borrow().input_operands_seq.len() == 1);
+
+    //             current_op.as_ref().borrow_mut().output_operands = current_op
+    //                 .as_ref()
+    //                 .borrow()
+    //                 .input_operands_seq
+    //                 .last()
+    //                 .cloned();
+    //         } else {
+    //             // match current_op.as_ref().borrow().layer.forward() {};
+    //         }
+    //     }
+
+    //     ()
+    // }
 }
 
 #[cfg(test)]
