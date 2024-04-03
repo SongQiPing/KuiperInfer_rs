@@ -11,10 +11,12 @@ use super::RuntimeOperator;
 use super::RuntimeOperatorUtil;
 use super::SharedRuntimeOperand;
 use super::SharedRuntimeOperator;
-
+use crate::data::SharedTensor;
 use crate::layer::Layer;
 use crate::layer::LayerRegisterer;
 use crate::pnnx::SharedOperand;
+use log::error;
+use log::info;
 #[derive(Debug)]
 pub enum GraphState {
     Complete,
@@ -240,6 +242,7 @@ impl RuntimeGraph {
         if let GraphState::NeedInit = self.graph_state {
             self.init();
         }
+        // 创建节点关系
         self.create_node_relation();
 
         //初始化节点的输入和输出空间
@@ -281,63 +284,97 @@ impl RuntimeGraph {
     pub fn get_topo_queues(&self) -> &Vec<SharedRuntimeOperator<f32>> {
         &self.topo_operators
     }
-    // fn ProbeNextLayer(
-    //     current_op: SharedRuntimeOperator<A>,
-    //     layer_ouput_datas: &Vec<SharedTensor<A>>,
-    // ) {
-    //     //当前节点的后续节点 next_ops
-    //     let next_ops = current_op.as_ref().borrow().output_operators;
-    //     // 对所有后继节点进行遍历
-    //     for (_, next_rt_operator) in next_ops {
-    //         // 得到后继节点的输入next_input_operands
-    //         let next_input_operands = next_rt_operator.as_ref().borrow().input_operands;
+    fn probe_next_layer(
+        current_op: SharedRuntimeOperator<f32>,
+        layer_ouput_datas: &Vec<SharedTensor<f32>>,
+    ) {
+        //当前节点的后续节点 next_ops
+        let next_ops = &current_op.as_ref().borrow().output_operators;
+        // 对所有后继节点进行遍历
+        for (_, next_rt_operator) in next_ops {
+            // 得到后继节点的输入next_input_operands
+            let next_input_operands = &next_rt_operator.as_ref().borrow().input_operands;
 
-    //         if let Some(input_operand) = next_input_operands.get(&current_op.as_ref().borrow().name)
-    //         {
-    //             let next_input_datas = &input_operand.borrow().datas;
-    //             assert_eq!(next_input_datas.len(), layer_ouput_datas.len());
-    //             for i in 0..next_input_datas.len() {
-    //                 next_input_datas[i] = layer_ouput_datas[i];
-    //             }
-    //         }
-    //     }
-    // }
-    // pub fn forward(&self, inputs: &Vec<SharedTensor<A>>) -> SharedTensor<A> {
-    //     assert!(
-    //         matches!(self.graph_state, GraphState::Complete),
-    //         "Graph status error, current state is {:?}",
-    //         self.graph_state
-    //     );
-    //     assert_eq!(
-    //         self.topo_operators.len(),
-    //         self.operators.len(),
-    //         "Build wrong topo queue"
-    //     );
-    //     for op in self.topo_operators {
-    //         op.borrow_mut().has_forward = false;
-    //     }
+            if let Some(input_operand) = next_input_operands.get(&current_op.as_ref().borrow().name)
+            {
+                let next_input_datas = &mut (input_operand.borrow_mut().datas);
+                assert_eq!(next_input_datas.len(), layer_ouput_datas.len());
+                for i in 0..next_input_datas.len() {
+                    next_input_datas[i] = layer_ouput_datas[i].clone();
+                }
+            }
+        }
+    }
+    pub fn forward(&self, inputs: &Vec<SharedTensor<f32>>) -> Option<Vec<SharedTensor<f32>>> {
+        assert!(
+            matches!(self.graph_state, GraphState::Complete),
+            "Graph status error, current state is {:?}",
+            self.graph_state
+        );
+        assert_eq!(
+            self.topo_operators.len(),
+            self.operators.len(),
+            "Build wrong topo queue"
+        );
+        for op in &self.topo_operators {
+            op.borrow_mut().has_forward = false;
+        }
 
-    //     for current_op in self.topo_operators {
-    //         if current_op.as_ref().borrow().type_name == "pnnx.Input" {
-    //             current_op.borrow_mut().has_forward = true;
-    //             Self::ProbeNextLayer(current_op, &inputs);
-    //         } else if current_op.as_ref().borrow().type_name == "pnnx.Output" {
-    //             current_op.borrow_mut().has_forward = true;
-    //             assert!(current_op.as_ref().borrow().input_operands_seq.len() == 1);
+        for current_op in &self.topo_operators {
+            if current_op.as_ref().borrow().type_name == "pnnx.Input" {
+                current_op.borrow_mut().has_forward = true;
+                Self::probe_next_layer(current_op.clone(), &inputs);
+            } else if current_op.as_ref().borrow().type_name == "pnnx.Output" {
+                current_op.borrow_mut().has_forward = true;
+                assert!(current_op.as_ref().borrow().input_operands_seq.len() == 1);
 
-    //             current_op.as_ref().borrow_mut().output_operands = current_op
-    //                 .as_ref()
-    //                 .borrow()
-    //                 .input_operands_seq
-    //                 .last()
-    //                 .cloned();
-    //         } else {
-    //             // match current_op.as_ref().borrow().layer.forward() {};
-    //         }
-    //     }
+                current_op.as_ref().borrow_mut().output_operands = current_op
+                    .as_ref()
+                    .borrow()
+                    .input_operands_seq
+                    .last()
+                    .cloned();
+            } else {
+                match current_op
+                    .as_ref()
+                    .borrow()
+                    .layer
+                    .as_ref()
+                    .unwrap()
+                    .as_ref()
+                    .forward()
+                {
+                    Ok(_) => {}
+                    Err(e) => {
+                        error!("{:?}", e);
+                        panic!()
+                    }
+                };
+            }
+        }
+        for current_op in &self.topo_operators {
+            if current_op.as_ref().borrow().has_forward != false {
+                info!(
+                    "The operator: {:?} has not been forward yet!",
+                    &current_op.as_ref().borrow().name
+                );
+            }
+        }
+        match self.operators_maps.get(&self.output_name) {
+            Some(output_operator) => {
+                let output_operand = output_operator
+                    .as_ref()
+                    .borrow()
+                    .output_operands
+                    .clone()
+                    .unwrap();
+                let out = Some(output_operand.as_ref().borrow().datas.clone());
 
-    //     ()
-    // }
+                out
+            }
+            None => None,
+        }
+    }
 }
 
 #[cfg(test)]
