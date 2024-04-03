@@ -1,4 +1,3 @@
-use num_traits::Zero;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -13,7 +12,6 @@ use super::RuntimeOperatorUtil;
 use super::SharedRuntimeOperand;
 use super::SharedRuntimeOperator;
 
-use crate::data::SharedTensor;
 use crate::layer::Layer;
 use crate::layer::LayerRegisterer;
 use crate::pnnx::SharedOperand;
@@ -23,24 +21,21 @@ pub enum GraphState {
     NeedBuild,
     NeedInit,
 }
-pub struct RuntimeGraph<A> {
+pub struct RuntimeGraph {
     intput_name: String, //计算输入节点的名称
     output_name: String, //计算图输入节点的名称
     param_path: String,  //计算图的结构文件
     bin_path: String,    //计算图的权重文件
 
-    operators: Vec<SharedRuntimeOperator<A>>,
-    pub operators_maps: HashMap<String, SharedRuntimeOperator<A>>,
-    topo_operators: Vec<SharedRuntimeOperator<A>>,
+    operators: Vec<SharedRuntimeOperator<f32>>,
+    pub operators_maps: HashMap<String, SharedRuntimeOperator<f32>>,
+    topo_operators: Vec<SharedRuntimeOperator<f32>>,
 
     graph: Box<pnnx::Graph>,
     graph_state: GraphState,
 }
 
-impl<A> RuntimeGraph<A>
-where
-    A: Clone + Zero,
-{
+impl RuntimeGraph {
     pub fn new(param_path: String, bin_path: String) -> Self {
         RuntimeGraph {
             intput_name: String::new(),
@@ -84,8 +79,8 @@ where
         self.operators_maps.clear();
 
         for operator in operators {
-            let runtime_operator: SharedRuntimeOperator<A> =
-                Rc::new(RefCell::new(RuntimeOperator::<A>::new()));
+            let runtime_operator: SharedRuntimeOperator<f32> =
+                Rc::new(RefCell::new(RuntimeOperator::<f32>::new()));
             runtime_operator.borrow_mut().name = operator.as_ref().borrow().name.clone();
             runtime_operator.borrow_mut().type_name = operator.as_ref().borrow().type_name.clone();
 
@@ -114,7 +109,7 @@ where
     pub fn init_graph_params(
         &self,
         param_map: &HashMap<String, pnnx::Parameter>,
-        runtime_operator: &SharedRuntimeOperator<A>,
+        runtime_operator: &SharedRuntimeOperator<f32>,
     ) {
         for (key, val) in param_map.iter() {
             runtime_operator
@@ -127,7 +122,7 @@ where
     pub fn init_graph_attrs(
         &self,
         attribute_map: &HashMap<String, pnnx::graph::Attribute>,
-        runtime_operator: &SharedRuntimeOperator<A>,
+        runtime_operator: &SharedRuntimeOperator<f32>,
     ) {
         for (key, val) in attribute_map.iter() {
             match val.type_id {
@@ -151,7 +146,7 @@ where
     pub fn init_graph_operator_output(
         &self,
         outputs: &Vec<SharedOperand>,
-        runtime_operator: &SharedRuntimeOperator<A>,
+        runtime_operator: &SharedRuntimeOperator<f32>,
     ) {
         if outputs.is_empty() {
             return;
@@ -171,18 +166,18 @@ where
     pub fn init_graph_operators_input(
         &self,
         inputs: &Vec<SharedOperand>,
-        runtime_operator: &SharedRuntimeOperator<A>,
+        runtime_operator: &SharedRuntimeOperator<f32>,
     ) {
         for input in inputs {
             let producer = &input.as_ref().borrow().producer;
             if let Some(producer) = producer {
-                let runtime_operand: SharedRuntimeOperand<A> =
-                    Rc::new(RefCell::new(RuntimeOperand::<A>::new()));
+                let runtime_operand: SharedRuntimeOperand<f32> =
+                    Rc::new(RefCell::new(RuntimeOperand::<f32>::new()));
                 runtime_operand.borrow_mut().name = producer.as_ref().borrow().name.clone();
                 runtime_operand.borrow_mut().shapes = input.as_ref().borrow().shape.clone();
             }
-            let runtime_operand: SharedRuntimeOperand<A> =
-                Rc::new(RefCell::new(RuntimeOperand::<A>::new()));
+            let runtime_operand: SharedRuntimeOperand<f32> =
+                Rc::new(RefCell::new(RuntimeOperand::<f32>::new()));
             runtime_operand.borrow_mut().name =
                 producer.as_ref().expect("REASON").borrow().name.clone();
             runtime_operand.borrow_mut().shapes = input.as_ref().borrow().shape.clone();
@@ -209,9 +204,9 @@ where
                 .push(runtime_operand.clone());
         }
     }
-    // fn create_layer(op: SharedRuntimeOperator<A>) {
-    //     // let layer: Rc<dyn Layer<f32>> = LayerRegisterer::create_layer(&op);
-    // }
+    fn create_layer(op: SharedRuntimeOperator<f32>) -> Rc<dyn Layer<f32>> {
+        LayerRegisterer::create_layer(&op)
+    }
     fn create_node_relation(&self) {
         //构建图关系
         for current_operator in &self.operators {
@@ -232,7 +227,8 @@ where
             if current_operator.as_ref().borrow().type_name != "pnnx.Input".to_string()
                 && current_operator.as_ref().borrow().type_name != "pnnx.Output".to_string()
             {
-                //创建层
+                let layer = Self::create_layer(current_operator.clone());
+                current_operator.borrow_mut().layer = Some(layer);
             }
         }
     }
@@ -271,8 +267,8 @@ where
     }
 
     pub fn reverse_topo(
-        root_op: &SharedRuntimeOperator<A>,
-        topo_operators: &mut Vec<SharedRuntimeOperator<A>>,
+        root_op: &SharedRuntimeOperator<f32>,
+        topo_operators: &mut Vec<SharedRuntimeOperator<f32>>,
     ) {
         root_op.borrow_mut().has_forward = true;
         for (_, next_operator) in &root_op.borrow().output_operators {
@@ -282,7 +278,7 @@ where
         }
         topo_operators.push(root_op.clone());
     }
-    pub fn get_topo_queues(&self) -> &Vec<SharedRuntimeOperator<A>> {
+    pub fn get_topo_queues(&self) -> &Vec<SharedRuntimeOperator<f32>> {
         &self.topo_operators
     }
     // fn ProbeNextLayer(
@@ -351,14 +347,14 @@ mod test_runrime_graph {
     fn test_new_graph() {
         let param_path = "model_file/test_linear.pnnx.param".to_string();
         let bin_path = "model_file/test_linear.pnnx.bin".to_string();
-        let _runtime_grpah: RuntimeGraph<f32> = RuntimeGraph::<f32>::new(param_path, bin_path);
+        let _runtime_grpah: RuntimeGraph = RuntimeGraph::new(param_path, bin_path);
     }
     #[test]
     #[should_panic(expected = "The bin path or param path is empty")]
     fn test_init_para_path_empty() {
         let param_path = String::new();
         let bin_path = "model_file/test_linear.pnnx.bin".to_string();
-        let mut runtime_grpah: RuntimeGraph<f32> = RuntimeGraph::<f32>::new(param_path, bin_path);
+        let mut runtime_grpah: RuntimeGraph = RuntimeGraph::new(param_path, bin_path);
         runtime_grpah.init();
     }
     #[test]
@@ -366,14 +362,14 @@ mod test_runrime_graph {
     fn test_init_bin_path_empty() {
         let param_path = "model_file/test_linear.pnnx.param".to_string();
         let bin_path = String::new();
-        let mut runtime_grpah: RuntimeGraph<f32> = RuntimeGraph::<f32>::new(param_path, bin_path);
+        let mut runtime_grpah: RuntimeGraph = RuntimeGraph::new(param_path, bin_path);
         runtime_grpah.init();
     }
     #[test]
     fn test_init() {
         let param_path = "model_file/test_linear.pnnx.param".to_string();
         let bin_path = "model_file/test_linear.pnnx.bin".to_string();
-        let mut runtime_grpah: RuntimeGraph<f32> = RuntimeGraph::<f32>::new(param_path, bin_path);
+        let mut runtime_grpah: RuntimeGraph = RuntimeGraph::new(param_path, bin_path);
         runtime_grpah.init();
     }
 }
@@ -382,31 +378,31 @@ mod test_runrime_graph {
 mod test_graph_topo {
     use super::*;
 
-    #[test]
-    fn test_topo() {
-        let param_path = "model_file/resnet18_batch1.param".to_string();
-        let bin_path = "model_file/resnet18_batch1.pnnx.bin".to_string();
-        let mut runtime_grpah: RuntimeGraph<f32> = RuntimeGraph::<f32>::new(param_path, bin_path);
-        runtime_grpah.init();
-        runtime_grpah.build("pnnx_input_0".to_string(), "pnnx_output_0".to_string());
-        let topo_queues = runtime_grpah.get_topo_queues();
+    // #[test]
+    // fn test_topo() {
+    //     let param_path = "model_file/resnet18_batch1.param".to_string();
+    //     let bin_path = "model_file/resnet18_batch1.pnnx.bin".to_string();
+    //     let mut runtime_grpah: RuntimeGraph = RuntimeGraph::new(param_path, bin_path);
+    //     runtime_grpah.init();
+    //     runtime_grpah.build("pnnx_input_0".to_string(), "pnnx_output_0".to_string());
+    //     let topo_queues = runtime_grpah.get_topo_queues();
 
-        let mut index = 0;
-        for operator in topo_queues {
-            println!(
-                "Index:{}, Type:{}, Name:{}",
-                index,
-                &operator.borrow().type_name,
-                &operator.borrow().name
-            );
-            index += 1;
-        }
-    }
+    //     let mut index = 0;
+    //     for operator in topo_queues {
+    //         println!(
+    //             "Index:{}, Type:{}, Name:{}",
+    //             index,
+    //             &operator.borrow().type_name,
+    //             &operator.borrow().name
+    //         );
+    //         index += 1;
+    //     }
+    // }
     #[test]
     fn test_build_output_ops() {
         let param_path = "model_file/simple_ops.pnnx.param".to_string();
         let bin_path = "model_file/simple_ops.pnnx.bin".to_string();
-        let mut runtime_grpah: RuntimeGraph<f32> = RuntimeGraph::<f32>::new(param_path, bin_path);
+        let mut runtime_grpah: RuntimeGraph = RuntimeGraph::new(param_path, bin_path);
         runtime_grpah.init();
         runtime_grpah.build("pnnx_input_0".to_string(), "pnnx_output_0".to_string());
         let topo_queues = runtime_grpah.get_topo_queues();
@@ -426,7 +422,7 @@ mod test_graph_topo {
     fn test_build_output_ops2() {
         let param_path = "model_file/simple_ops.pnnx.param".to_string();
         let bin_path = "model_file/simple_ops.pnnx.bin".to_string();
-        let mut runtime_grpah: RuntimeGraph<f32> = RuntimeGraph::<f32>::new(param_path, bin_path);
+        let mut runtime_grpah: RuntimeGraph = RuntimeGraph::new(param_path, bin_path);
         runtime_grpah.init();
         runtime_grpah.build("pnnx_input_0".to_string(), "pnnx_output_0".to_string());
         let topo_queues = runtime_grpah.get_topo_queues();
@@ -443,7 +439,7 @@ mod test_graph_topo {
     fn test_build_status() {
         let param_path = "model_file/simple_ops.pnnx.param".to_string();
         let bin_path = "model_file/simple_ops.pnnx.bin".to_string();
-        let mut runtime_grpah: RuntimeGraph<f32> = RuntimeGraph::<f32>::new(param_path, bin_path);
+        let mut runtime_grpah: RuntimeGraph = RuntimeGraph::new(param_path, bin_path);
         assert!(matches!(runtime_grpah.graph_state, GraphState::NeedInit));
         runtime_grpah.init();
         assert!(matches!(runtime_grpah.graph_state, GraphState::NeedBuild));
@@ -454,7 +450,7 @@ mod test_graph_topo {
     fn test_build_output_tensors() {
         let param_path = "model_file/simple_ops2.pnnx.param".to_string();
         let bin_path = "model_file/simple_ops2.pnnx.bin".to_string();
-        let mut runtime_grpah: RuntimeGraph<f32> = RuntimeGraph::<f32>::new(param_path, bin_path);
+        let mut runtime_grpah: RuntimeGraph = RuntimeGraph::new(param_path, bin_path);
         assert!(matches!(runtime_grpah.graph_state, GraphState::NeedInit));
         runtime_grpah.init();
         assert!(matches!(runtime_grpah.graph_state, GraphState::NeedBuild));

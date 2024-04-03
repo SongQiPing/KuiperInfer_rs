@@ -123,7 +123,7 @@ mod test_abrastra_layer {
     #[test]
     fn test_create_layer_find() {
         // 检查nn.ReLu 算子是否注册
-        let layer_type = "nn.ReLu".to_string();
+        let layer_type = "nn.ReLU".to_string();
         assert!(LayerRegisterer::check_operator_registration(&layer_type));
     }
 
@@ -135,7 +135,7 @@ mod test_abrastra_layer {
         use std::cell::RefCell;
         use std::rc::Rc;
         let mut runtime_operator = RuntimeOperator::<f32>::new();
-        runtime_operator.type_name = "nn.ReLu".to_string();
+        runtime_operator.type_name = "nn.ReLU".to_string();
         let runtime_operator = Rc::new(RefCell::new(runtime_operator));
         let relu_layer = LayerRegisterer::create_layer(&runtime_operator);
 

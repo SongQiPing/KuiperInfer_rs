@@ -741,7 +741,7 @@ mod test_conv2d_layer {
     fn get_test_conv2d_operator_from_pnnx() -> SharedRuntimeOperator<f32> {
         let param_path = "model_file/simple_ops2.pnnx.param".to_string();
         let bin_path = "model_file/simple_ops2.pnnx.bin".to_string();
-        let mut runtime_grpah: RuntimeGraph<f32> = RuntimeGraph::<f32>::new(param_path, bin_path);
+        let mut runtime_grpah: RuntimeGraph = RuntimeGraph::new(param_path, bin_path);
 
         runtime_grpah.init();
 
