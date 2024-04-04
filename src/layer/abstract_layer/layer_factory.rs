@@ -59,7 +59,8 @@ where
             "pnnx.Expression".to_string(),
             ExpressionLayer::<A>::get_instance,
         );
-
+        use crate::layer::details::linear::LinearLayer;
+        layer_registry.register_creator("nn.Linear".to_string(), LinearLayer::<A>::get_instance);
         layer_registry
     }
     pub fn register_creator(&mut self, layer_type: String, creator: Creator<A>) {

@@ -40,6 +40,8 @@ pub enum LayerError {
     ParameterMissingDilationError,
     ParameterMissingInChannelError,
     ParameterMissingOutChannelError,
+    ParameterMissingInFeaturesError,
+    ParameterMissingOutFeaturesError,
     ParameterMissingUseBiasError,
     ParameterMissingPaddingModeError,
     AttrMissingWeightError,
@@ -259,6 +261,40 @@ impl ParameterData {
                 Err(LayerError::ParameterMissingDilationError)
             }
         }
+    }
+    pub fn get_in_features(
+        params_map: &HashMap<String, Rc<RefCell<Parameter>>>,
+    ) -> Result<i32, LayerError> {
+        //获取值值
+        let in_features = Self::get_int_params(params_map, &"in_features");
+        if let None = in_features {
+            error!("Can not find the in_features parameter");
+            error!(
+                "the params is {:?}",
+                params_map.get(&"in_features".to_string()).clone()
+            );
+            return Err(LayerError::ParameterMissingInFeaturesError);
+        }
+        let in_features = in_features.unwrap();
+
+        Ok(in_features)
+    }
+    pub fn get_out_features(
+        params_map: &HashMap<String, Rc<RefCell<Parameter>>>,
+    ) -> Result<i32, LayerError> {
+        //获取值值
+        let out_features = Self::get_int_params(params_map, &"out_features");
+        if let None = out_features {
+            error!("Can not find the out_features parameter");
+            error!(
+                "the params is {:?}",
+                params_map.get(&"out_features".to_string()).clone()
+            );
+            return Err(LayerError::ParameterMissingOutFeaturesError);
+        }
+        let out_features = out_features.unwrap();
+
+        Ok(out_features)
     }
     pub fn get_in_channels(
         params_map: &HashMap<String, Rc<RefCell<Parameter>>>,
