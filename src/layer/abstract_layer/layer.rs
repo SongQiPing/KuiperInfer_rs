@@ -46,7 +46,7 @@ pub enum LayerError {
     ParameterMissingPaddingModeError,
     AttrMissingWeightError,
     AttrMissingBiasError,
-
+    ParameterMissingOutHWError,
     ParameterMissingExpr,
 }
 pub trait Layer<A>
@@ -181,6 +181,34 @@ impl ParameterData {
             Err(LayerError::ParameterMissingStrideError)
         }
     }
+    pub fn output_hw(
+        params_map: &HashMap<String, Rc<RefCell<Parameter>>>,
+    ) -> Result<Vec<i32>, LayerError> {
+        // 获取值
+        let output_hw = Self::get_int_vec_params(params_map, &"output_size");
+        if let None = output_hw {
+            error!("Can not find the output_hw parameter");
+            error!(
+                "the params is {:?}",
+                params_map.get(&"output_size".to_string()).clone()
+            );
+            return Err(LayerError::ParameterMissingOutHWError);
+        }
+
+        let output_hw = output_hw.unwrap();
+
+        // 检查值是否符合要求
+        if output_hw.len() == 2 {
+            Ok(output_hw)
+        } else {
+            error!(
+                "Can not find the right stride parameter, current stride parameter is {:?}",
+                output_hw
+            );
+            Err(LayerError::ParameterMissingOutHWError)
+        }
+    }
+
     pub fn get_padding(
         params_map: &HashMap<String, Rc<RefCell<Parameter>>>,
     ) -> Result<Vec<i32>, LayerError> {

@@ -1,3 +1,4 @@
+pub mod adaptive_avgpooling;
 pub mod convolution;
 pub mod expression;
 pub mod linear;

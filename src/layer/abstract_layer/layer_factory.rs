@@ -1,5 +1,6 @@
 use crate::layer::Layer;
 use crate::runtime::{RuntimeOperator, SharedRuntimeOperator};
+use crate::TensorScalar;
 use lazy_static::lazy_static;
 use ndarray::LinalgScalar;
 use num_traits::Bounded;
@@ -34,7 +35,7 @@ pub trait LayerCreate {
 
 impl<A> LayerRegistry<A>
 where
-    A: Clone + LinalgScalar + PartialOrd + Bounded + std::ops::Neg + std::fmt::Debug,
+    A: Clone + LinalgScalar + PartialOrd + Bounded + std::ops::Neg + std::fmt::Debug + TensorScalar,
     f32: From<A>,
     A: From<f32>,
 {
@@ -61,6 +62,12 @@ where
         );
         use crate::layer::details::linear::LinearLayer;
         layer_registry.register_creator("nn.Linear".to_string(), LinearLayer::<A>::get_instance);
+
+        use crate::layer::details::adaptive_avgpooling::AdaptiveAveragePoolingLayer;
+        layer_registry.register_creator(
+            "nn.AdaptiveAvgPool2d".to_string(),
+            AdaptiveAveragePoolingLayer::<A>::get_instance,
+        );
         layer_registry
     }
     pub fn register_creator(&mut self, layer_type: String, creator: Creator<A>) {
