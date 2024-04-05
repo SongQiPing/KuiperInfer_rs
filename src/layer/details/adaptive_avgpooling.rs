@@ -9,8 +9,6 @@ use crate::TensorScalar;
 
 use log::error;
 use log::info;
-use num_traits::Bounded;
-use num_traits::Zero;
 
 use crate::layer::LayerError;
 use crate::runtime::SharedRuntimeOperator;
@@ -28,15 +26,6 @@ where
     f32: From<A>,
     A: From<f32>,
 {
-    fn new(output_h: usize, output_w: usize) -> Self {
-        AdaptiveAveragePoolingLayer {
-            runtime_operator: RuntimeOperatorData::new(),
-            layer_name: "nn.MaxPool2d".to_string(),
-            output_h,
-            output_w,
-        }
-    }
-
     fn calculate_maxpool_window_value(
         &self,
         inputs: &SharedTensor<A>,
@@ -46,16 +35,13 @@ where
         pooling_h: usize,
         pooling_w: usize,
     ) -> A {
-        let input_h = inputs.as_ref().borrow().rows();
-        let input_w = inputs.as_ref().borrow().cols();
         let mut sum_val = A::zero();
         for r in 0..pooling_h {
             for c in 0..pooling_w {
-                let mut currect_val: A = Zero::zero();
                 let cur_row = row_start + r;
                 let cur_col = col_start + c;
 
-                currect_val = inputs
+                let currect_val = inputs
                     .as_ref()
                     .borrow()
                     .index(&[cur_channel, cur_row, cur_col])

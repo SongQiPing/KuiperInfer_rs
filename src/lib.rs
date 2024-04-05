@@ -6,7 +6,7 @@ use std::ops::{Add, Div, Mul, Sub};
 pub use data::tensor::Tensor;
 
 pub mod runtime;
-use ndarray::LinalgScalar;
+
 use num_traits::{One, Zero};
 pub use runtime::pnnx;
 

@@ -68,6 +68,10 @@ where
             "nn.AdaptiveAvgPool2d".to_string(),
             AdaptiveAveragePoolingLayer::<A>::get_instance,
         );
+
+        use crate::layer::details::flatten::FlattenLayer;
+        layer_registry
+            .register_creator("torch.flatten".to_string(), FlattenLayer::<A>::get_instance);
         layer_registry
     }
     pub fn register_creator(&mut self, layer_type: String, creator: Creator<A>) {

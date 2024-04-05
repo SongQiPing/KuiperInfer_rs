@@ -48,6 +48,8 @@ pub enum LayerError {
     AttrMissingBiasError,
     ParameterMissingOutHWError,
     ParameterMissingExpr,
+
+    ParameterMissingDim,
 }
 pub trait Layer<A>
 where
@@ -306,6 +308,40 @@ impl ParameterData {
         let in_features = in_features.unwrap();
 
         Ok(in_features)
+    }
+    pub fn get_start_dim(
+        params_map: &HashMap<String, Rc<RefCell<Parameter>>>,
+    ) -> Result<i32, LayerError> {
+        //获取值值
+        let start_dim = Self::get_int_params(params_map, &"start_dim");
+        if let None = start_dim {
+            error!("Can not find the start_dim parameter");
+            error!(
+                "the params is {:?}",
+                params_map.get(&"start_dim".to_string()).clone()
+            );
+            return Err(LayerError::ParameterMissingDim);
+        }
+        let start_dim = start_dim.unwrap();
+
+        Ok(start_dim)
+    }
+    pub fn get_end_dim(
+        params_map: &HashMap<String, Rc<RefCell<Parameter>>>,
+    ) -> Result<i32, LayerError> {
+        //获取值值
+        let end_dim = Self::get_int_params(params_map, &"end_dim");
+        if let None = end_dim {
+            error!("Can not find the end_dim parameter");
+            error!(
+                "the params is {:?}",
+                params_map.get(&"end_dim".to_string()).clone()
+            );
+            return Err(LayerError::ParameterMissingDim);
+        }
+        let end_dim = end_dim.unwrap();
+
+        Ok(end_dim)
     }
     pub fn get_out_features(
         params_map: &HashMap<String, Rc<RefCell<Parameter>>>,
