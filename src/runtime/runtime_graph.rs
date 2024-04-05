@@ -15,7 +15,7 @@ use crate::data::SharedTensor;
 use crate::layer::Layer;
 use crate::layer::LayerRegisterer;
 use crate::pnnx::SharedOperand;
-use log::error;
+
 use log::info;
 #[derive(Debug)]
 pub enum GraphState {
@@ -150,9 +150,6 @@ impl RuntimeGraph {
         outputs: &Vec<SharedOperand>,
         runtime_operator: &SharedRuntimeOperator<f32>,
     ) {
-        if outputs.is_empty() {
-            return;
-        }
         for output_operand in outputs {
             let consumers = &output_operand.as_ref().borrow_mut().consumers;
             for consumer in consumers {
@@ -298,6 +295,7 @@ impl RuntimeGraph {
             if let Some(input_operand) = next_input_operands.get(&current_op.as_ref().borrow().name)
             {
                 let next_input_datas = &mut (input_operand.borrow_mut().datas);
+
                 assert_eq!(next_input_datas.len(), layer_ouput_datas.len());
                 for i in 0..next_input_datas.len() {
                     next_input_datas[i] = layer_ouput_datas[i].clone();
@@ -321,19 +319,20 @@ impl RuntimeGraph {
         }
 
         for current_op in &self.topo_operators {
+            println!("{:?}", &current_op.as_ref().borrow().type_name);
             if current_op.as_ref().borrow().type_name == "pnnx.Input" {
                 current_op.borrow_mut().has_forward = true;
                 Self::probe_next_layer(current_op.clone(), &inputs);
             } else if current_op.as_ref().borrow().type_name == "pnnx.Output" {
                 current_op.borrow_mut().has_forward = true;
                 assert!(current_op.as_ref().borrow().input_operands_seq.len() == 1);
-
-                current_op.as_ref().borrow_mut().output_operands = current_op
+                let output_operands = current_op
                     .as_ref()
                     .borrow()
                     .input_operands_seq
                     .last()
                     .cloned();
+                current_op.as_ref().borrow_mut().output_operands = output_operands;
             } else {
                 match current_op
                     .as_ref()
@@ -346,10 +345,19 @@ impl RuntimeGraph {
                 {
                     Ok(_) => {}
                     Err(e) => {
-                        error!("{:?}", e);
-                        panic!()
+                        panic!("{:?}", e);
                     }
                 };
+                current_op.borrow_mut().has_forward = true;
+
+                let output_operands = current_op
+                    .as_ref()
+                    .borrow()
+                    .output_operands
+                    .clone()
+                    .unwrap();
+                let output_datas = output_operands.as_ref().borrow_mut().datas.clone();
+                Self::probe_next_layer(current_op.clone(), &output_datas);
             }
         }
         for current_op in &self.topo_operators {

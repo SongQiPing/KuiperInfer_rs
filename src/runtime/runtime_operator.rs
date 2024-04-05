@@ -4,6 +4,7 @@ use crate::data::torch_utils::create_tensor_2;
 use crate::layer::Layer;
 use crate::pnnx::Parameter;
 use crate::pnnx::SharedOperator;
+use crate::Tensor;
 
 use super::RuntimeAttribute;
 use super::RuntimeDataType;
@@ -66,7 +67,7 @@ impl RuntimeOperatorUtil {
      * 如果图是第二次以上运行，则检查输入operand的形状和operand中张量的形状是否匹配
      * @param operators 计算图中的计算节点
      */
-    pub fn init_operator_input<A>(operators: &Vec<SharedRuntimeOperator<A>>) {
+    pub fn init_operator_input<A: Clone + Zero>(operators: &Vec<SharedRuntimeOperator<A>>) {
         for operator in operators {
             let input_operand_map = &operator.as_ref().borrow().input_operands;
             for (_operand_name, operand) in input_operand_map {
@@ -79,13 +80,20 @@ impl RuntimeOperatorUtil {
                 }
                 let input_operand_shape = &operand.borrow().shapes.clone();
                 //得到初始化的空间
-                let _input_datas = &operand.borrow_mut().datas;
+                let input_datas = &mut operand.borrow_mut().datas;
                 // println!("input_data:{}", input_datas.len());
                 //检查形状是否符合要求
-                let _batch = input_operand_shape[0];
+                let batch = input_operand_shape[0];
                 check_shape(&input_operand_shape);
 
                 // TODO:
+                if input_datas.len() != 0 {
+                    assert_eq!(input_datas.len(), batch);
+                } else {
+                    for _ in 0..batch {
+                        input_datas.push(Tensor::new(&input_operand_shape[1..]).shared_self());
+                    }
+                }
             }
         }
     }

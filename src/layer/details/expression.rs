@@ -83,9 +83,9 @@ where
         let layer_input_datas = self.runtime_operator.prepare_input_tensor();
         let layer_ouput_datas = self.runtime_operator.prepare_output_tensor();
 
-        if let Err(e) = self.check_inputs_and_outputs(&layer_input_datas, &layer_ouput_datas) {
-            return Err(e);
-        }
+        // if let Err(e) = self.check_inputs_and_outputs(&layer_input_datas, &layer_ouput_datas) {
+        //     return Err(e);
+        // }
         if let Err(e) = self.forward_with_tensors(&layer_input_datas, &layer_ouput_datas) {
             return Err(e);
         }
@@ -107,7 +107,6 @@ where
                 let mut input_token_nodes = Vec::new();
                 let start_pos = num_index * batch_size;
                 for i in 0..batch_size {
-                    println!("{:?},{:?}", num_index, start_pos + i);
                     input_token_nodes.push(inputs.get(start_pos + i).unwrap().clone());
                 }
                 op_stack.push(input_token_nodes);

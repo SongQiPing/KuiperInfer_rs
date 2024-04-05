@@ -180,7 +180,8 @@ where
         outputs: &SharedTensor<A>,
     ) -> Result<(), LayerError> {
         let input_matrix = inputs.as_ref().borrow().data().clone();
-        let input_matrix: ArrayBase<ndarray::OwnedRepr<A>, Dim<[usize; 2]>> =
+        println!("{:?}", input_matrix.shape());
+        let input_matrix: ArrayBase<ndarray::OwnedRepr<A>, Dim<[usize; 1]>> =
             input_matrix.clone().into_dimensionality().unwrap();
 
         let weight = self.weights.get().as_ref().borrow().data().clone();
@@ -188,16 +189,14 @@ where
         let weight = weight.into_shape(weight_shape).unwrap();
         let weight: ArrayBase<ndarray::OwnedRepr<A>, Dim<[usize; 2]>> =
             weight.clone().into_dimensionality().unwrap();
-        let weight = weight.t().to_owned();
-        let mut output_tensor: ndarray::ArrayBase<ndarray::OwnedRepr<A>, ndarray::Dim<[usize; 2]>> =
-            input_matrix.dot(&weight);
+        let weight = weight.to_owned();
+        let mut output_tensor: ndarray::ArrayBase<ndarray::OwnedRepr<A>, ndarray::Dim<[usize; 1]>> =
+            weight.dot(&input_matrix);
         if let Some(bias_data) = &self.bias {
             let bias_data = bias_data.get().borrow().data().clone();
 
-            let bias_data = bias_data
-                .into_shape(IxDyn(&[1, self.out_features]))
-                .unwrap();
-            let bias_data: ArrayBase<ndarray::OwnedRepr<A>, Dim<[usize; 2]>> =
+            let bias_data = bias_data.into_shape(IxDyn(&[self.out_features])).unwrap();
+            let bias_data: ArrayBase<ndarray::OwnedRepr<A>, Dim<[usize; 1]>> =
                 bias_data.clone().into_dimensionality().unwrap();
 
             output_tensor = output_tensor + bias_data;
@@ -294,10 +293,10 @@ mod test_linear_layer {
 
     #[test]
     fn test_layer_forward() {
-        let input_tensor = Tensor::<f32>::new(&[1, 32]);
+        let input_tensor = Tensor::<f32>::new(&[32]);
         let input_data = vec![Rc::new(RefCell::new(input_tensor))];
 
-        let output_tensor = Tensor::<f32>::new(&[1, 128]);
+        let output_tensor = Tensor::<f32>::new(&[128]);
         let output_data = vec![Rc::new(RefCell::new(output_tensor))];
 
         let relu_layer = LinearLayer::new(None, 32, 128, true);
@@ -305,5 +304,20 @@ mod test_linear_layer {
         relu_layer
             .forward_with_tensors(&input_data, &output_data)
             .unwrap();
+    }
+    #[test]
+    fn test() {
+        use ndarray::{arr1, arr2, Array1};
+        let scalar = 4;
+
+        let vector = arr1(&[1, 2, 3]);
+
+        let matrix = arr2(&[[4, 5, 6], [7, 8, 9]]);
+
+        let new_vector: Array1<_> = scalar * vector;
+        println!("{}", new_vector);
+
+        let new_matrix = matrix.dot(&new_vector);
+        println!("{}", new_matrix);
     }
 }

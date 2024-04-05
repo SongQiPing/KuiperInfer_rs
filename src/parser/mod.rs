@@ -63,7 +63,6 @@ impl ExpressionParser {
         let statement: String = Self::remove_whitespace(statement);
         //判断是否为空
         assert!(!statement.is_empty(), "The input statement is empty!");
-        print!("{}", &statement);
 
         ExpressionParser {
             tokens: Vec::new(),

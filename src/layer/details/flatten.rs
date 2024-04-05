@@ -116,9 +116,9 @@ where
         let layer_input_datas = self.runtime_operator.prepare_input_tensor();
         let layer_ouput_datas = self.runtime_operator.prepare_output_tensor();
 
-        if let Err(e) = self.check_inputs_and_outputs(&layer_input_datas, &layer_ouput_datas) {
-            return Err(e);
-        }
+        // if let Err(e) = self.check_inputs_and_outputs(&layer_input_datas, &layer_ouput_datas) {
+        //     return Err(e);
+        // }
 
         if let Err(e) = self.forward_with_tensors(&layer_input_datas, &layer_ouput_datas) {
             return Err(e);

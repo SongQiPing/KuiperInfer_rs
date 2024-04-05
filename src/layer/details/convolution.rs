@@ -140,16 +140,6 @@ where
 
         let mut output_tensor: ndarray::ArrayBase<ndarray::OwnedRepr<A>, ndarray::Dim<[usize; 2]>> =
             kernel_matrix.dot(&input_matrix);
-        for i in 0..kernel_matrix.shape()[1] {
-            let weight_val = kernel_matrix[[0, i]];
-            let input_val = input_matrix[[i, 0]];
-            println!(
-                "conv_gemm_bias:\n weight_val:{:?}, input_val:{:?}",
-                weight_val, input_val
-            );
-        }
-
-        println!("conv_gemm_bias:\n output_val:{:?}", output_tensor[[0, 0]]);
 
         if let Some(bias_data) = bias {
             let bias_data = bias_data.get().borrow().data().clone();
@@ -158,7 +148,7 @@ where
             let bias_data = bias_data.into_shape(IxDyn(&[out_channel, 1])).unwrap();
             let bias_data: ArrayBase<ndarray::OwnedRepr<A>, Dim<[usize; 2]>> =
                 bias_data.clone().into_dimensionality().unwrap();
-            println!("conv_gemm_bias:\n bias_val:{:?}", bias_data);
+
             output_tensor = output_tensor + bias_data;
         }
         let output_tensor = output_tensor.into_dyn();
