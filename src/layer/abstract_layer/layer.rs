@@ -407,6 +407,21 @@ impl ParameterData {
             }
         }
     }
+    pub fn get_dim(
+        params_map: &HashMap<String, Rc<RefCell<Parameter>>>,
+    ) -> Result<i32, LayerError> {
+        match Self::get_int_params(params_map, &"dim") {
+            Some(dim) => Ok(dim),
+            None => {
+                error!("Can not find the dim parameter");
+                error!(
+                    "the params is {:?}",
+                    params_map.get(&"dim".to_string()).clone()
+                );
+                Err(LayerError::ParameterMissingDim)
+            }
+        }
+    }
     pub fn get_has_bias(
         params_map: &HashMap<String, Rc<RefCell<Parameter>>>,
     ) -> Result<bool, LayerError> {

@@ -6,3 +6,4 @@ pub mod linear;
 pub mod maxpooling;
 pub mod relu;
 pub mod sigmoid;
+pub mod softmax;

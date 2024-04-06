@@ -72,6 +72,9 @@ where
         use crate::layer::details::flatten::FlattenLayer;
         layer_registry
             .register_creator("torch.flatten".to_string(), FlattenLayer::<A>::get_instance);
+
+        use crate::layer::details::softmax::SoftmaxLayer;
+        layer_registry.register_creator("nn.Softmax".to_string(), SoftmaxLayer::<A>::get_instance);
         layer_registry
     }
     pub fn register_creator(&mut self, layer_type: String, creator: Creator<A>) {

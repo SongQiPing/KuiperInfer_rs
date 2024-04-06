@@ -525,7 +525,7 @@ mod test_conv2d_layer {
     use ndarray::Array1;
     use ndarray::Array3;
     use ndarray::Array4;
-    use ndarray::ArrayD;
+
     use ndarray::Dim;
     use ndarray::IxDyn;
     use num_traits::Zero;
@@ -536,7 +536,7 @@ mod test_conv2d_layer {
     use crate::layer::Layer;
     use crate::layer::LayerRegisterer;
     use crate::runtime::RuntimeGraph;
-    use crate::runtime::RuntimeOperand;
+
     use crate::runtime::RuntimeOperator;
     use crate::runtime::SharedRuntimeOperator;
     use ndarray::prelude::*;
@@ -741,20 +741,7 @@ mod test_conv2d_layer {
             .operators_maps
             .get(&"op1".to_string())
             .unwrap();
-        let mut operand_operand = RuntimeOperand::<f32>::new();
 
-        for _ in 0..2 {
-            // let tensor = ArrayD::random(IxDyn(&[3, 16, 16]), Uniform::<f32>::new(1.0., 1.0));
-            let tensor = ArrayD::ones(IxDyn(&[3, 16, 16]));
-            let tensor = Tensor::from_ndarry(tensor).shared_self();
-            operand_operand.datas.push(tensor);
-        }
-        let operand_operand = Rc::new(RefCell::new(operand_operand));
-        conv_2d_layer
-            .as_ref()
-            .borrow_mut()
-            .input_operands_seq
-            .push(operand_operand);
         conv_2d_layer.clone()
     }
 
