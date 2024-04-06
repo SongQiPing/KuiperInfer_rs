@@ -139,7 +139,6 @@ impl RuntimeOperatorUtil {
         //检查形状是否相同
         assert_eq!(batch, output_operand.borrow().datas.len());
         assert_eq!(output_operand.borrow().shapes, pnnx_operand.borrow().shape);
-        println!("===={:?}", output_operand.borrow().shapes);
 
         // 逐批次检查输出空间的形状是否合理，如果不合理则进行reshape
         // for batch_index  in 0..batch{

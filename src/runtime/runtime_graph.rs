@@ -319,7 +319,6 @@ impl RuntimeGraph {
         }
 
         for current_op in &self.topo_operators {
-            println!("{:?}", &current_op.as_ref().borrow().type_name);
             if current_op.as_ref().borrow().type_name == "pnnx.Input" {
                 current_op.borrow_mut().has_forward = true;
                 Self::probe_next_layer(current_op.clone(), &inputs);

@@ -252,8 +252,10 @@ where
         match attribute_map.get(&"bias".to_string()) {
             Some(weight_attibute) => {
                 let vec_data: Vec<A> = weight_attibute.as_ref().borrow_mut().get::<A>(false);
+
                 let shape: [usize; 4] = [self.out_channel, 1, 1, 1];
                 let raw_shapes = IxDyn(&shape);
+
                 let ndarray_data = ArrayD::from_shape_vec(raw_shapes, vec_data).unwrap();
                 self.bias
                     .as_ref()
@@ -262,7 +264,6 @@ where
                     .as_ref()
                     .borrow_mut()
                     .set_data(ndarray_data);
-                info!("{:?}", self.bias);
             }
             None => {
                 error!("Can not find the bias attribute");
@@ -321,7 +322,6 @@ where
             has_bias,
         );
 
-        //加载权重
         conv_2d_layer.load_attribute(&runtime_operator.as_ref().borrow().attribute)?;
 
         conv_2d_layer.log_info();
@@ -536,10 +536,12 @@ mod test_conv2d_layer {
     use crate::layer::Layer;
     use crate::layer::LayerRegisterer;
     use crate::runtime::RuntimeGraph;
-
+    use crate::runtime::RuntimeOperand;
     use crate::runtime::RuntimeOperator;
     use crate::runtime::SharedRuntimeOperator;
     use ndarray::prelude::*;
+    use ndarray_rand::rand_distr::Uniform;
+    use ndarray_rand::RandomExt;
     use std::cell::RefCell;
     use std::rc::Rc;
 
@@ -696,7 +698,6 @@ mod test_conv2d_layer {
         let bias_ndarry = bias_ndarry.into_shape(shape).unwrap();
         let bias_ndarry: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, Dim<[usize; 1]>> =
             bias_ndarry.clone().into_dimensionality().unwrap();
-
         // Set padding and stride
         let padding_h = 1;
         let padding_w = 1;
@@ -737,14 +738,144 @@ mod test_conv2d_layer {
 
         runtime_grpah.build("pnnx_input_0".to_string(), "pnnx_output_0".to_string());
 
-        let conv_2d_layer = runtime_grpah
+        let conv_2d_operator: &Rc<RefCell<RuntimeOperator<f32>>> = runtime_grpah
             .operators_maps
             .get(&"op1".to_string())
             .unwrap();
 
-        conv_2d_layer.clone()
+        let mut operand_operand = RuntimeOperand::<f32>::new();
+
+        for _ in 0..2 {
+            let tensor = ArrayD::random(IxDyn(&[3, 16, 16]), Uniform::<f32>::new(-1.0, 1.0));
+
+            let tensor = Tensor::from_ndarry(tensor).shared_self();
+            operand_operand.datas.push(tensor);
+        }
+        let operand_operand = Rc::new(RefCell::new(operand_operand));
+        conv_2d_operator
+            .as_ref()
+            .borrow_mut()
+            .input_operands_seq
+            .clear();
+        conv_2d_operator
+            .as_ref()
+            .borrow_mut()
+            .input_operands_seq
+            .push(operand_operand);
+        conv_2d_operator.clone()
+    }
+    #[test_log::test]
+    fn test_conv2d_forward_resnet() {
+        let runtime_operator = get_test_conv2d_operator_from_resnet();
+        let mut _layer = ConvolutionLayer::get_instance(runtime_operator.clone()).unwrap();
+
+        _layer.forward().unwrap();
+        let conv_2d_layer = unsafe {
+            let layer = &(*_layer);
+
+            let conv_2d_layer: &ConvolutionLayer<f32> = static_cast(layer);
+            conv_2d_layer
+        };
+        // input_ndarry
+        let input_ndarry = conv_2d_layer.runtime_operator.prepare_input_tensor()[0]
+            .as_ref()
+            .borrow()
+            .data()
+            .clone();
+        let input_ndarry: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, Dim<[usize; 3]>> =
+            input_ndarry.clone().into_dimensionality().unwrap();
+        // 得到kernel_ndarry
+        let kernel_ndarry = conv_2d_layer.weights.weights.clone();
+        let kernel_ndarry: ndarray::ArrayBase<
+            ndarray::OwnedRepr<f32>,
+            ndarray::Dim<ndarray::IxDynImpl>,
+        > = kernel_ndarry.as_ref().borrow().data.clone();
+        let kernel_ndarry: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, Dim<[usize; 4]>> =
+            kernel_ndarry.clone().into_dimensionality().unwrap();
+
+        // 获得bias
+        let bias = match &conv_2d_layer.bias {
+            Some(bias) => bias.weights.clone(),
+            None => {
+                panic!()
+            }
+        };
+        let bias_ndarry: ndarray::ArrayBase<
+            ndarray::OwnedRepr<f32>,
+            ndarray::Dim<ndarray::IxDynImpl>,
+        > = bias.as_ref().borrow().data.clone();
+        let shape = IxDyn(&[bias_ndarry.shape()[0]]);
+        let bias_ndarry = bias_ndarry.into_shape(shape).unwrap();
+        let bias_ndarry: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, Dim<[usize; 1]>> =
+            bias_ndarry.clone().into_dimensionality().unwrap();
+
+        // Set padding and stride
+        let padding_h = 3;
+        let padding_w = 3;
+        let stride_h = 2;
+        let stride_w = 2;
+
+        // Perform convolution
+        let expected_output = conv2d_ndarray(
+            input_ndarry.clone(),
+            kernel_ndarry,
+            bias_ndarry,
+            padding_h,
+            padding_w,
+            stride_h,
+            stride_w,
+        );
+
+        let output_ndarry = conv_2d_layer.runtime_operator.prepare_output_tensor()[0]
+            .as_ref()
+            .borrow()
+            .data()
+            .clone();
+        let output_ndarry: ndarray::ArrayBase<ndarray::OwnedRepr<f32>, Dim<[usize; 3]>> =
+            output_ndarry.clone().into_dimensionality().unwrap();
+        info!("output_ndarry:{:?}", &output_ndarry[[0, 0, 0]]);
+        info!("expected_output:{:?}", &expected_output[[0, 0, 0]]);
+        info!("output_ndarrry shape:{:?}", output_ndarry.shape());
+        info!("expected_output shape:{:?}", expected_output.shape());
+        assert_ndarrays_approx_equal(output_ndarry.view(), expected_output.view(), 1e-5);
+        // assert_eq!(output_ndarry, expected_output);
     }
 
+    fn get_test_conv2d_operator_from_resnet() -> SharedRuntimeOperator<f32> {
+        let param_path = "model_file/resnet18_batch1.param".to_string();
+        let bin_path = "model_file/resnet18_batch1.pnnx.bin".to_string();
+        let mut runtime_grpah: RuntimeGraph = RuntimeGraph::new(param_path, bin_path);
+
+        runtime_grpah.init();
+
+        runtime_grpah.build("pnnx_input_0".to_string(), "pnnx_output_0".to_string());
+
+        let conv_2d_operator: &Rc<RefCell<RuntimeOperator<f32>>> = runtime_grpah
+            .operators_maps
+            .get(&"convbn2d_0".to_string())
+            .unwrap();
+
+        let mut operand_operand = RuntimeOperand::<f32>::new();
+
+        for _ in 0..1 {
+            let tensor = ArrayD::random(IxDyn(&[3, 224, 224]), Uniform::<f32>::new(-3., 3.0));
+
+            let tensor = Tensor::from_ndarry(tensor).shared_self();
+            operand_operand.datas.push(tensor);
+        }
+        let operand_operand = Rc::new(RefCell::new(operand_operand));
+        conv_2d_operator
+            .as_ref()
+            .borrow_mut()
+            .input_operands_seq
+            .clear();
+        conv_2d_operator
+            .as_ref()
+            .borrow_mut()
+            .input_operands_seq
+            .push(operand_operand);
+        conv_2d_operator.clone()
+    }
     #[test_log::test]
     fn test_create_layer() {
         let runtime_operator: Rc<RefCell<RuntimeOperator<f32>>> =

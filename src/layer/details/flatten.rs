@@ -63,7 +63,6 @@ where
         if end_dim < 0 {
             end_dim = total_dims + end_dim;
         }
-        println!("start_dim:{}, end_dim{}", start_dim, end_dim);
         assert!(
             end_dim > start_dim,
             "The end dim must greater than start dim"

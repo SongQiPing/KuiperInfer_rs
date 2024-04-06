@@ -57,8 +57,6 @@ mod test_runtime_attribute {
         };
         let weights: Vec<f32> = runtime_attr.get(false);
         assert_eq!(weights, vec![1.0]);
-
-        println!("{:?}", weights); // Output: [1.0]
     }
     #[test]
     fn test_get_with_u8() {

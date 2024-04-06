@@ -276,10 +276,4 @@ mod test_softmax_layer {
         info!("-------output_data");
         info!("{:?}", out_data);
     }
-    #[test]
-    fn test() {
-        let x: f32 = 10.;
-        let y = x.exp();
-        println!("{:?}", y);
-    }
 }

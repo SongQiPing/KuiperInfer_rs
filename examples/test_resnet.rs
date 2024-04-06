@@ -35,6 +35,7 @@ fn pre_process_image(image: &image::ImageBuffer<image::Rgb<u8>, Vec<u8>>) -> Sha
     }
     image_tensor.shared_self()
 }
+
 fn main() {
     let param_path = "model_file/resnet18_batch1.param".to_string();
     let bin_path = "model_file/resnet18_batch1.pnnx.bin".to_string();
@@ -55,7 +56,6 @@ fn main() {
     let inputs = vec![tensor];
     let outputs = runtime_grpah.forward(&inputs).unwrap();
 
-    println!("{:?}", outputs);
     let softmax_layer = SoftmaxLayer::<f32>::new(-1);
 
     let out_data = Tensor::<f32>::new(&[1000]);
@@ -65,7 +65,6 @@ fn main() {
         .forward_with_tensors(&outputs, &outputs_softmax)
         .unwrap();
 
-    println!("{:?}", outputs_softmax);
     for i in 0..outputs_softmax.len() {
         let output_tensor = outputs_softmax[i].clone();
         assert_eq!(output_tensor.as_ref().borrow().size(), 1000);
