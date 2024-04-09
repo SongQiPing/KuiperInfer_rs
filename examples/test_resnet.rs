@@ -37,7 +37,7 @@ fn pre_process_image(image: &image::ImageBuffer<image::Rgb<u8>, Vec<u8>>) -> Sha
 }
 
 fn main() {
-    let param_path = "model_file/resnet18_batch1.param".to_string();
+    let param_path = "model_file/resnet18_batch1.pnnx.param".to_string();
     let bin_path = "model_file/resnet18_batch1.pnnx.bin".to_string();
     let mut runtime_grpah: RuntimeGraph = RuntimeGraph::new(param_path, bin_path);
 

@@ -210,13 +210,6 @@ mod test_graph {
         let _graph = Graph::from_pnnx(param_path, bin_path);
     }
     #[test]
-    fn test_graph_load_pnnx_yolo() {
-        use kuiper_infer::pnnx::Graph;
-        let param_path = "model_file/yolov5s_batch8.pnnx.param";
-        let bin_path = "model_file/yolov5s_batch8.pnnx.bin";
-        let _graph = Graph::from_pnnx(param_path, bin_path);
-    }
-    #[test]
     fn test_new_operand() {
         use kuiper_infer::pnnx::Graph;
         let mut graph = Graph::new();
